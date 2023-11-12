@@ -29,7 +29,7 @@ static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_upstream_request_line(ngx_http_request_t *r,
+static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
 #if (NGX_HTTP_CACHE)
@@ -88,7 +88,7 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0},
 
-    { ngx_string("upstream_request_line"), NULL, ngx_extra_var_upstream_request_line, 0,
+    { ngx_string("upstream_url"), NULL, ngx_extra_var_upstream_url, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
@@ -264,14 +264,41 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
 
 
 static ngx_int_t 
-ngx_extra_var_upstream_request_line(ngx_http_request_t *r,
+ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    v->len = r->upstream->request_line.len;
-    v->data = r->upstream->request_line.data;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
+    ngx_http_upstream_t   *u;
+    ngx_str_t              upstream_url;
+
+    u = r->upstream;
+
+    if (u && u->peer.name) {
+
+        uri_separator = "";
+
+#if (NGX_HAVE_UNIX_DOMAIN)
+        if (u->peer.sockaddr && u->peer.sockaddr->sa_family == AF_UNIX) {
+            uri_separator = ":";
+        }
+#endif
+
+        upstream_url.len = u->schema.len + u->peer.name.len + uri_separator.len + u->uri.len;
+        upstream_url.data = ngx_pnalloc(r->pool, upstream_url.len);
+        if (upstream_url.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_snprintf(upstream_url.data, upstream_url.len, "%V%V%s%V",
+                    &u->schema, u->peer.name, uri_separator, &u->uri);
+
+        v->len = upstream_url.len;
+        v->data = upstream_url.data;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+    } else {
+        v->not_found = 1;
+    }
 
     return NGX_OK;
 }
