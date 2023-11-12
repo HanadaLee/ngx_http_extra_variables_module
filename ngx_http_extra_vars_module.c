@@ -43,22 +43,22 @@ static int ngx_libc_cdecl ngx_extra_var_cmp_args(const void *one,
 
 static ngx_http_module_t  ngx_http_extra_vars_module_ctx = {
     ngx_http_extra_vars_add_variables,      /* preconfiguration */
-    NULL,                                  /* postconfiguration */
+    NULL,                                   /* postconfiguration */
 
-    NULL,                                  /* create main configuration */
-    NULL,                                  /* init main configuration */
+    NULL,                                   /* create main configuration */
+    NULL,                                   /* init main configuration */
 
-    NULL,                                  /* create server configuration */
-    NULL,                                  /* merge server configuration */
+    NULL,                                   /* create server configuration */
+    NULL,                                   /* merge server configuration */
 
-    NULL,                                  /* create location configuration */
-    NULL                                   /* merge location configuration */
+    NULL,                                   /* create location configuration */
+    NULL                                    /* merge location configuration */
 };
 
 
 ngx_module_t  ngx_http_extra_vars_module = {
     NGX_MODULE_V1,
-    &ngx_http_extra_vars_module_ctx,    /* module context */
+    &ngx_http_extra_vars_module_ctx,         /* module context */
     NULL,                                    /* module directives */
     NGX_HTTP_MODULE,                         /* module type */
     NULL,                                    /* init master */
@@ -318,7 +318,7 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
 
 
 static ngx_int_t 
-ngx_http_upstream_request_line_variable(ngx_http_request_t *r,
+ngx_extra_var_upstream_request_line(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     v->len = r->upstream->request_line.len;
