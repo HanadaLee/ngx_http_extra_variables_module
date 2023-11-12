@@ -37,9 +37,6 @@ static ngx_int_t ngx_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #endif
 
-static int ngx_libc_cdecl ngx_extra_var_cmp_args(const void *one,
-    const void *two);
-
 
 static ngx_http_module_t  ngx_http_extra_vars_module_ctx = {
     ngx_http_extra_vars_add_variables,      /* preconfiguration */
@@ -151,25 +148,6 @@ ngx_extra_var_location(ngx_http_request_t *r,
     v->data = clcf->name.data;
 
     return NGX_OK;
-}
-
-
-static int ngx_libc_cdecl
-ngx_extra_var_cmp_args(const void *one, const void *two)
-{
-    const ngx_str_t *first, *second;
-
-    first = (const ngx_str_t *) one;
-    second = (const ngx_str_t *) two;
-
-    ngx_int_t cmpr = ngx_strncmp(first->data, second->data,
-        ngx_min(first->len, second->len));
-
-    if (cmpr > 0 || (cmpr == 0 && first->len > second->len)) {
-        return 1;
-    } else {
-        return cmpr;
-    }
 }
 
 
