@@ -29,8 +29,6 @@ static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_upstream_method(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
@@ -89,9 +87,6 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0},
-
-    { ngx_string("upstream_method"), NULL, ngx_extra_var_upstream_method, 0,
-        NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("upstream_url"), NULL, ngx_extra_var_upstream_url, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -299,38 +294,6 @@ ngx_extra_var_upstream_url(ngx_http_request_t *r,
 
         v->len = upstream_url.len;
         v->data = upstream_url.data;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
-    } else {
-        v->not_found = 1;
-    }
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t 
-ngx_extra_var_upstream_method(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_upstream_t       *u;
-    ngx_str_t                 upstream_method;
-
-    u = r->upstream;
-
-    if (u && u->peer.name) {
-
-        upstream_method.len = u->method.len;
-        upstream_method.data = ngx_pnalloc(r->pool, upstream_method.len);
-        if (upstream_method.data == NULL) {
-            return NGX_ERROR;
-        }
-
-        ngx_snprintf(upstream_method.data, upstream_method.len, "%V", &u->method);
-
-        v->len = upstream_method.len;
-        v->data = upstream_method.data;
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
