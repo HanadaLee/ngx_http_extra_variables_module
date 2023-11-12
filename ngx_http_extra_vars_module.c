@@ -315,8 +315,8 @@ ngx_extra_var_upstream_method(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->upstream) {
-        v->len = r->upstream->request_method.len;
-        v->data = r->upstream->request_method.data;
+        v->len = r->upstream->method.len;
+        v->data = r->upstream->method.data;
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
