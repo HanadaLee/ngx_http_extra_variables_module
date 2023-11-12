@@ -314,9 +314,23 @@ static ngx_int_t
 ngx_extra_var_upstream_method(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (r->upstream) {
-        v->len = r->upstream->method.len;
-        v->data = r->upstream->method.data;
+    ngx_http_upstream_t       *u;
+    ngx_str_t                 upstream_method;
+
+    u = r->upstream;
+
+    if (u && u->peer.name) {
+
+        upstream_method.len = u->method.len
+        upstream_method.data = ngx_pnalloc(r->pool, upstream_method.len);
+        if (upstream_method.data == NULL) {
+            return NGX_ERROR;
+        }
+
+        ngx_snprintf(upstream_method.data, upstream_method.len, "%V", &u->method);
+
+        v->len = upstream_method.len;
+        v->data = upstream_method.data;
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
