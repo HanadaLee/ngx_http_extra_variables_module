@@ -1,4 +1,4 @@
-ngx_addon_name=ngx_http_extravars_module
+ngx_addon_name=ngx_http_extra_vars_module
 ngx_module_srcs="$ngx_addon_dir/$ngx_addon_name.c"
 
 if test -n "$ngx_module_link"; then
