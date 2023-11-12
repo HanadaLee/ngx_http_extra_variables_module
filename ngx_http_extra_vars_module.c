@@ -123,38 +123,6 @@ ngx_http_extra_vars_add_variables(ngx_conf_t *cf)
 
 
 static ngx_int_t
-ngx_extra_var_aliased_uri(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_core_loc_conf_t   *clcf;
-    size_t                      alias;
-
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-    alias =
-#if (NGX_PCRE)
-        clcf->regex ? 0 :
-#endif
-        clcf->name.len;
-
-    if (r->uri.len >= alias
-        && ngx_strncmp(r->uri.data, clcf->name.data, alias) == 0)
-    {
-        v->data = r->uri.data + alias;
-        v->len = r->uri.len - alias;
-    } else {
-        v->data = r->uri.data;
-        v->len = r->uri.len;
-    }
-
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
 ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
