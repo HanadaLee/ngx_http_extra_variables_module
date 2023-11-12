@@ -19,7 +19,7 @@
 
 static ngx_int_t ngx_http_extra_vars_add_variables(ngx_conf_t *cf);
 
-static ngx_int_t ngx_extra_var_location(ngx_http_request_t *r,
+static ngx_int_t ngx_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_time_msec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -73,7 +73,7 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("ext"), NULL, ngx_extra_var_ext, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("location"), NULL, ngx_extra_var_location, 0,
+    { ngx_string("location_name"), NULL, ngx_extra_var_location_name, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("redirect_count"), NULL, ngx_extra_var_uint,
@@ -134,7 +134,7 @@ ngx_extra_var_ext(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_location(ngx_http_request_t *r,
+ngx_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_core_loc_conf_t  *clcf;
