@@ -282,7 +282,7 @@ ngx_extra_var_upstream_url(ngx_http_request_t *r,
         }
 #endif
 
-        upstream_url.len = u->schema.len + u->peer.name.len + uri_separator.len + u->uri.len;
+        upstream_url.len = u->schema.len + u->peer.name->len + uri_separator.len + u->uri.len;
         upstream_url.data = ngx_pnalloc(r->pool, upstream_url.len);
         if (upstream_url.data == NULL) {
             return NGX_ERROR;
