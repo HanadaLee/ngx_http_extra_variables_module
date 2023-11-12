@@ -321,7 +321,7 @@ ngx_extra_var_upstream_method(ngx_http_request_t *r,
 
     if (u && u->peer.name) {
 
-        upstream_method.len = u->method.len
+        upstream_method.len = u->method.len;
         upstream_method.data = ngx_pnalloc(r->pool, upstream_method.len);
         if (upstream_method.data == NULL) {
             return NGX_ERROR;
