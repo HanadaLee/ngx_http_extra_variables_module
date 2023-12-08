@@ -1,5 +1,6 @@
 
 /*
+ * Copyright (C) Jonathan Kolb
  * Copyright (C) Hanada
  */
 
@@ -9,21 +10,18 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
-#define NGX_EXTRA_VAR_TIME_NOW       0
-#define NGX_EXTRA_VAR_TIME_ELAPSED   1
-#define NGX_EXTRA_VAR_TIME_REQUEST   2
-
 #define NGX_EXTRA_VAR_REDIRECT_COUNT         0
 #define NGX_EXTRA_VAR_SUBREQUEST_COUNT       1
-#define NGX_EXTRA_VAR_CONNECTION_REQUESTS    2
 
 static ngx_int_t ngx_http_extra_vars_add_variables(ngx_conf_t *cf);
 
 static ngx_int_t ngx_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_time_msec(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_uint(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_extra_var_request_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -79,11 +77,14 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("redirect_count"), NULL, ngx_extra_var_uint,
         NGX_EXTRA_VAR_REDIRECT_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_received_ts"), NULL, ngx_extra_var_time_msec,
-        NGX_EXTRA_VAR_TIME_REQUEST, 0, 0 },
-
     { ngx_string("subrequest_count"), NULL, ngx_extra_var_uint,
         NGX_EXTRA_VAR_SUBREQUEST_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("connect_start_ts"), NULL, ngx_extra_var_connect_start_ts, 0,
+        0, 0 },
+
+    { ngx_string("request_start_ts"), NULL, ngx_extra_var_request_start_ts, 0,
+        0, 0 },
 
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0},
@@ -152,57 +153,6 @@ ngx_extra_var_location_name(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_time_msec(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    u_char         *p;
-    ngx_time_t     *tp, t;
-    ngx_msec_int_t  ms;
-
-    p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
-    if (p == NULL) {
-        return NGX_ERROR;
-    }
-
-    switch (data) {
-    case NGX_EXTRA_VAR_TIME_NOW :
-        tp = ngx_timeofday();
-        break;
-
-    case NGX_EXTRA_VAR_TIME_ELAPSED :
-        tp = ngx_timeofday();
-
-        ms = (ngx_msec_int_t) ((tp->sec - r->start_sec) * 1000
-                 + (tp->msec - r->start_msec));
-        ms = ngx_max(ms, 0);
-
-        tp = &t;
-        tp->sec = ms / 1000;
-        tp->msec = ms % 1000;
-        break;
-
-    case NGX_EXTRA_VAR_TIME_REQUEST :
-        tp = &t;
-        tp->sec = r->start_sec;
-        tp->msec = r->start_msec;
-        break;
-
-    default :
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-    v->len = ngx_sprintf(p, "%T.%03M", tp->sec, tp->msec) - p;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-    v->data = p;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
 ngx_extra_var_uint(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -223,10 +173,6 @@ ngx_extra_var_uint(ngx_http_request_t *r,
         value = NGX_HTTP_MAX_SUBREQUESTS + 1 - r->subrequests;
         break;
 
-    case NGX_EXTRA_VAR_CONNECTION_REQUESTS:
-        value = r->connection->requests;
-        break;
-
     default:
         v->not_found = 1;
         return NGX_OK;
@@ -240,6 +186,58 @@ ngx_extra_var_uint(ngx_http_request_t *r,
 
     return NGX_OK;
 }
+
+
+static ngx_int_t
+ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_connection_t  *c;
+    u_char            *p;
+    ngx_msec_t         start_time_msec;
+
+    c = r->connection;
+    start_time_msec = c->start_time;
+
+    p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_sprintf(p, "%T.%03M", start_time_msec / 1000, start_time_msec % 1000);
+
+    v->len = ngx_strlen(p);
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_extra_var_request_start_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char         *p;
+
+    p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec);
+
+    v->len = ngx_strlen(p);
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    return NGX_OK;
+}
+
 
 static ngx_int_t
 ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
@@ -267,9 +265,9 @@ static ngx_int_t
 ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    char                      *uri_separator;
-    ngx_http_upstream_t       *u;
-    ngx_str_t                 upstream_url;
+    char                    *uri_separator;
+    ngx_http_upstream_t     *u;
+    ngx_str_t                upstream_url;
 
     u = r->upstream;
 
