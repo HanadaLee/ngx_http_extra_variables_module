@@ -348,21 +348,27 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
         switch (data) {
         case NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS:
             ms = state[i].connect_start_msec;
+            break;
 
         case NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS:
             ms = state[i].connect_end_msec;
+            break;
 
         case NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS:
             ms = state[i].send_start_msec;
+            break;
 
         case NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS:
             ms = state[i].send_end_msec;
+            break;
 
         case NGX_EXTRA_VAR_UPSTREAM_HEADER_TS:
             ms = state[i].header_msec;
+            break;
 
         case NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS:
             ms = state[i].response_msec;
+            break;
 
         default:
             v->not_found = 1;
