@@ -229,25 +229,27 @@ static ngx_int_t
 ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_connection_t  *c;
-    u_char            *p;
-    ngx_msec_t         start_time_msec;
+    ngx_msec_int_t   ms;
+    u_char          *p;
 
-    c = r->connection;
-    start_time_msec = c->start_time;
+    if (r->connection->start_time == 0) {
+        ngx_str_null(v);
+
+        return NGX_OK;
+    }
+
+    ms = r->connection->start_time;
 
     p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    p = ngx_sprintf(p, "%T.%03M", start_time_msec / 1000, start_time_msec % 1000);
-
-    v->len = ngx_strlen(p);
+    v->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
+    v->data = p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
-    v->data = p;
 
     return NGX_OK;
 }
