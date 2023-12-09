@@ -272,7 +272,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
             v->not_found = 1;
             return NGX_OK;
         }
-        p = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec);
+        v->len = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec) - p;
         break;
 
     case NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS:
@@ -280,7 +280,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
             v->not_found = 1;
             return NGX_OK;
         }
-        p = ngx_sprintf(p, "%T.%03M", r->parse_done_sec, r->parse_done_msec);
+        v->len = ngx_sprintf(p, "%T.%03M", r->parse_done_sec, r->parse_done_msec) - p;
         break;
 
     case NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS:
@@ -288,7 +288,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
             v->not_found = 1;
             return NGX_OK;
         }
-        p = ngx_sprintf(p, "%T.%03M", r->header_sent_sec, r->header_sent_msec);
+        v->len = ngx_sprintf(p, "%T.%03M", r->header_sent_sec, r->header_sent_msec) - p;
         break;
 
     default:
@@ -296,7 +296,6 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    v->len = ngx_strlen(p);
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
