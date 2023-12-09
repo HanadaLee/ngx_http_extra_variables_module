@@ -10,8 +10,19 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
-#define NGX_EXTRA_VAR_REDIRECT_COUNT         0
-#define NGX_EXTRA_VAR_SUBREQUEST_COUNT       1
+#define NGX_EXTRA_VAR_REDIRECT_COUNT                 0
+#define NGX_EXTRA_VAR_SUBREQUEST_COUNT               1
+
+#define NGX_EXTRA_VAR_REQUEST_CREATE_TS              0
+#define NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS   1
+#define NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS        2
+
+#define NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS      0
+#define NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS        1
+#define NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS         2
+#define NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS           3
+#define NGX_EXTRA_VAR_UPSTREAM_HEADER_TS             4
+#define NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS           5
 
 static ngx_int_t ngx_http_extra_vars_add_variables(ngx_conf_t *cf);
 
@@ -21,7 +32,7 @@ static ngx_int_t ngx_extra_var_uint(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_request_start_ts(ngx_http_request_t *r,
+static ngx_int_t ngx_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -29,6 +40,8 @@ static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_extra_var_upstream_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
 
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_extra_var_cache_file(ngx_http_request_t *r,
@@ -83,14 +96,38 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("connect_start_ts"), NULL, ngx_extra_var_connect_start_ts, 0,
         0, 0 },
 
-    { ngx_string("request_start_ts"), NULL, ngx_extra_var_request_start_ts, 0,
-        0, 0 },
+    { ngx_string("request_create_ts"), NULL, ngx_extra_var_request_ts,
+        NGX_EXTRA_VAR_REQUEST_CREATE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("request_header_parse_done_ts"), NULL, ngx_extra_var_request_ts,
+        NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("response_header_sent_ts"), NULL, ngx_extra_var_request_ts,
+        NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0},
 
     { ngx_string("upstream_url"), NULL, ngx_extra_var_upstream_url, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_connect_start_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_connect_end_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_send_start_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_send_end_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_header_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_HEADER_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_response_ts"), NULL, ngx_extra_var_upstream_ts,
+        NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
     { ngx_string("cache_file"), NULL, ngx_extra_var_cache_file, 0,
@@ -217,7 +254,7 @@ ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_request_start_ts(ngx_http_request_t *r,
+ngx_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char         *p;
@@ -227,7 +264,35 @@ ngx_extra_var_request_start_ts(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    p = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec);
+    switch (data) {
+    case NGX_EXTRA_VAR_REQUEST_CREATE_TS:
+        if (!r->start_sec || !r->start_msec) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
+        p = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec);
+        break;
+
+    case NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS:
+        if (!r->parse_done_sec || !r->parse_done_msec) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
+        p = ngx_sprintf(p, "%T.%03M", r->parse_done_sec, r->parse_done_msec);
+        break;
+
+    case NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS:
+        if (!r->header_sent_sec || !r->header_sent_msec) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
+        p = ngx_sprintf(p, "%T.%03M", r->header_sent_sec, r->header_sent_msec);
+        break;
+
+    default:
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
     v->len = ngx_strlen(p);
     v->valid = 1;
@@ -256,6 +321,97 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
         v->not_found = 0;
         v->data = (u_char *) "0";
     }
+
+    return NGX_OK;
+}
+
+static ngx_int_t
+ngx_extra_var_upstream_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char                     *p;
+    size_t                      len;
+    ngx_uint_t                  i;
+    ngx_msec_int_t              ms;
+    ngx_http_upstream_state_t  *state;
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    if (r->upstream_states == NULL || r->upstream_states->nelts == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    len = r->upstream_states->nelts * (NGX_TIME_T_LEN + 4 + 2);
+
+    p = ngx_pnalloc(r->pool, len);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    v->data = p;
+
+    i = 0;
+    state = r->upstream_states->elts;
+
+    for ( ;; ) {
+
+        switch (data) {
+        case NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS:
+            ms = state[i].connect_start_msec;
+
+        case NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS:
+            ms = state[i].connect_end_msec;
+
+        case NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS:
+            ms = state[i].send_start_msec;
+
+        case NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS:
+            ms = state[i].send_end_msec;
+
+        case NGX_EXTRA_VAR_UPSTREAM_HEADER_TS:
+            ms = state[i].header_msec;
+
+        case NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS:
+            ms = state[i].response_msec;
+
+        default:
+            v->not_found = 1;
+            return NGX_OK;
+        }
+
+        if (ms != -1) {
+            ms = ngx_max(ms, 0);
+            p = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000);
+
+        } else {
+            *p++ = '-';
+        }
+
+        if (++i == r->upstream_states->nelts) {
+            break;
+        }
+
+        if (state[i].peer) {
+            *p++ = ',';
+            *p++ = ' ';
+
+        } else {
+            *p++ = ' ';
+            *p++ = ':';
+            *p++ = ' ';
+
+            if (++i == r->upstream_states->nelts) {
+                break;
+            }
+
+            continue;
+        }
+    }
+
+    v->len = p - v->data;
 
     return NGX_OK;
 }
