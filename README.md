@@ -7,7 +7,6 @@
 | **$subrequest_count**             | The number of subrequests performed for this request.|
 | **$connect_start_ts**             | Connect start timestamp in seconds with the milliseconds resolution.|
 | **$request_create_ts**            | Request create timestamp in seconds with the milliseconds resolution.|
-| **$request_header_parse_done_ts** | Timestamp to complete parsing request headers in seconds with the milliseconds resolution.|
 | **$ignore_cache_control**         | Returns "1" if the value of the proxy_ignore_header directive contains cache-control, or "0" otherwise.|
 | **$upstream_url**                 | Full upstream request url.                         |
 | **$upstream_connect_start_ts**    | keeps timestamp of upstream connection starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.|

@@ -14,8 +14,7 @@
 #define NGX_EXTRA_VAR_SUBREQUEST_COUNT               1
 
 #define NGX_EXTRA_VAR_REQUEST_CREATE_TS              0
-#define NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS   1
-#define NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS        2
+#define NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS        1
 
 #define NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS      0
 #define NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS        1
@@ -98,9 +97,6 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     { ngx_string("request_create_ts"), NULL, ngx_extra_var_request_ts,
         NGX_EXTRA_VAR_REQUEST_CREATE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-    { ngx_string("request_header_parse_done_ts"), NULL, ngx_extra_var_request_ts,
-        NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("response_header_sent_ts"), NULL, ngx_extra_var_request_ts,
         NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -229,7 +225,7 @@ static ngx_int_t
 ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_msec_int_t   ms;
+    ngx_msec_t       ms;
     u_char          *p;
 
     if (r->connection->start_time == 0) {
@@ -273,14 +269,6 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
             return NGX_OK;
         }
         v->len = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec) - p;
-        break;
-
-    case NGX_EXTRA_VAR_REQUEST_HEADER_PARSE_DONE_TS:
-        if (!r->parse_done_sec || !r->parse_done_msec) {
-            v->not_found = 1;
-            return NGX_OK;
-        }
-        v->len = ngx_sprintf(p, "%T.%03M", r->parse_done_sec, r->parse_done_msec) - p;
         break;
 
     case NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS:
@@ -333,7 +321,7 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
     u_char                     *p;
     size_t                      len;
     ngx_uint_t                  i;
-    ngx_msec_int_t              ms;
+    ngx_msec_t                  ms;
     ngx_http_upstream_state_t  *state;
 
     v->valid = 1;
