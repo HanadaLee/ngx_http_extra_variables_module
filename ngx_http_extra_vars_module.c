@@ -317,6 +317,7 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                     *p;
+    ngx_time_t                 *tp;
     size_t                      len;
     ngx_uint_t                  i;
     ngx_msec_t                  ms;
@@ -342,6 +343,8 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
 
     i = 0;
     state = r->upstream_states->elts;
+
+    tp = ngx_timeofday();
 
     for ( ;; ) {
 
@@ -376,7 +379,8 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
         }
 
         if (ms != -1) {
-            ms = ngx_max(ms, 0);
+            ms = (ngx_msec_t)
+                ((tp->sec * 1000 + tp->msec) - (ngx_current_msec - ms));
             p = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000);
 
         } else {
