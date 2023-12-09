@@ -33,6 +33,8 @@ static ngx_int_t ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_extra_var_current_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
@@ -100,6 +102,9 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     { ngx_string("response_header_sent_ts"), NULL, ngx_extra_var_request_ts,
         NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("current_ts"), NULL, ngx_extra_var_current_ts, 0,
+        NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0},
@@ -228,12 +233,6 @@ ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_msec_t       ms;
     u_char          *p;
 
-    if (r->connection->start_time == 0) {
-        ngx_str_null(v);
-
-        return NGX_OK;
-    }
-
     ms = r->connection->start_time;
 
     p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
@@ -242,10 +241,10 @@ ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
     }
 
     v->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
-    v->data = p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
+    v->data = p;
 
     return NGX_OK;
 }
@@ -284,6 +283,30 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
         return NGX_OK;
     }
 
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_extra_var_current_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char          *p;
+    ngx_msec_t       ms;
+
+    p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + 4);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    ms = ngx_current_msec;
+
+    v->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
