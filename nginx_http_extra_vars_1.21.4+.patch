@@ -21,39 +21,14 @@ index ca13f2a..0bfea99 100644
      if (r != r->main) {
          return NGX_OK;
      }
-diff --git a/src/http/ngx_http_request.c b/src/http/ngx_http_request.c
-index 013b715..80ce556 100644
---- a/src/http/ngx_http_request.c
-+++ b/src/http/ngx_http_request.c
-@@ -1345,6 +1345,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
-     ngx_http_request_t         *r;
-     ngx_http_core_srv_conf_t   *cscf;
-     ngx_http_core_main_conf_t  *cmcf;
-+    ngx_time_t                 *tp;
- 
-     c = rev->data;
-     r = c->data;
-@@ -1487,6 +1488,10 @@ ngx_http_process_request_headers(ngx_event_t *rev)
- 
-             r->request_length += r->header_in->pos - r->header_name_start;
- 
-+            tp = ngx_timeofday();
-+            r->parse_done_sec = tp->sec;
-+            r->parse_done_msec = tp->msec;
-+
-             r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
- 
-             rc = ngx_http_process_request_header(r);
 diff --git a/src/http/ngx_http_request.h b/src/http/ngx_http_request.h
-index b1269d2..95e19dd 100644
+index b1269d2..7d8ee47 100644
 --- a/src/http/ngx_http_request.h
 +++ b/src/http/ngx_http_request.h
-@@ -404,6 +404,10 @@ struct ngx_http_request_s {
+@@ -404,6 +404,8 @@ struct ngx_http_request_s {
      time_t                            lingering_time;
      time_t                            start_sec;
      ngx_msec_t                        start_msec;
-+    time_t                            parse_done_sec;
-+    ngx_msec_t                        parse_done_msec;
 +    time_t                            header_sent_sec;
 +    ngx_msec_t                        header_sent_msec;
  
