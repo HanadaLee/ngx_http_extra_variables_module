@@ -41,7 +41,7 @@ static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
 static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_upstream_ts(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+    ngx_http_variable_value_t *v, uintptr_t data);
 
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_extra_var_cache_file(ngx_http_request_t *r,
