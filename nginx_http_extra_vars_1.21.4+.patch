@@ -22,10 +22,18 @@ index ca13f2a..0bfea99 100644
          return NGX_OK;
      }
 diff --git a/src/http/ngx_http_request.c b/src/http/ngx_http_request.c
-index 013b715..f65be47 100644
+index 013b715..80ce556 100644
 --- a/src/http/ngx_http_request.c
 +++ b/src/http/ngx_http_request.c
-@@ -1487,6 +1487,10 @@ ngx_http_process_request_headers(ngx_event_t *rev)
+@@ -1345,6 +1345,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
+     ngx_http_request_t         *r;
+     ngx_http_core_srv_conf_t   *cscf;
+     ngx_http_core_main_conf_t  *cmcf;
++    ngx_time_t                 *tp;
+ 
+     c = rev->data;
+     r = c->data;
+@@ -1487,6 +1488,10 @@ ngx_http_process_request_headers(ngx_event_t *rev)
  
              r->request_length += r->header_in->pos - r->header_name_start;
  
