@@ -229,6 +229,25 @@ ngx_extra_var_ext(ngx_http_request_t *r,
 
 
 static ngx_int_t
+ngx_extra_var_has_args(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (r->args.len == 0) {
+        v->data = (u_char *) "?";
+    } else {
+        v->data = (u_char *) "&";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
