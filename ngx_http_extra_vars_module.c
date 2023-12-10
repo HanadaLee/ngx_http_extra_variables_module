@@ -467,18 +467,15 @@ ngx_extra_var_upstream_ssl_session_reused(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_connection_t        *c;
+    ngx_str_t                session_reused;
 
-    if (r->upstream && r->upstream->peer.name && r->upstream->peer.connection) {
+    if (r->upstream && r->upstream->peer.name && r->upstream->peer.connection && r->upstream->peer.connection->ssl) {
         c = r->upstream->peer.connection;
 
-        if (SSL_session_reused(c->ssl->connection)) {
-            v->data = (u_char *) "r";
-            v->len = 1;
-        } else {
-            v->data = (u_char *) ".";
-            v->len = 1;
-        }
+        ngx_ssl_get_session_reused(c, r->pool, &session_reused);
 
+        v->data = session_reused.data;
+        v->len = session_reused.len;
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
