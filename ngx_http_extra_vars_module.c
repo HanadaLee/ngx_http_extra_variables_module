@@ -41,6 +41,8 @@ static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_extra_var_upstream_ssl_session_reused(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_extra_var_cache_file(ngx_http_request_t *r,
@@ -124,6 +126,9 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     { ngx_string("upstream_response_ts"), NULL, ngx_extra_var_upstream_ts,
         NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_ssl_session_reused"), NULL, ngx_extra_var_upstream_ssl_session_reused, 0,
+        NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
     { ngx_string("cache_file"), NULL, ngx_extra_var_cache_file, 0,
@@ -312,6 +317,7 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
     return NGX_OK;
 }
 
+
 static ngx_int_t
 ngx_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
@@ -448,6 +454,35 @@ ngx_extra_var_upstream_url(ngx_http_request_t *r,
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
+    } else {
+        v->not_found = 1;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t 
+ngx_extra_var_upstream_ssl_session_reused(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_connection_t        *c;
+
+    if (r->upstream && r->upstream->peer.name && r->upstream->peer.connection) {
+        c = r->upstream->peer.connection;
+
+        if (SSL_session_reused(c->ssl->connection)) {
+            v->data = (u_char *) "r";
+            v->len = 1;
+        } else {
+            v->data = (u_char *) ".";
+            v->len = 1;
+        }
+
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+
     } else {
         v->not_found = 1;
     }
