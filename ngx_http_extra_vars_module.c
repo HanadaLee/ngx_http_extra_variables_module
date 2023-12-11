@@ -10,6 +10,10 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
+typedef ngx_int_t (*ngx_ssl_variable_handler_pt)(ngx_connection_t *c,
+    ngx_pool_t *pool, ngx_str_t *s);
+
+
 #define NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT                 0
 #define NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT               1
 
