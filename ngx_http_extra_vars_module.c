@@ -56,8 +56,6 @@ static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_upstream_connection_reused(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_upstream_time(ngx_http_request_t *r,
@@ -141,9 +139,6 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
     { ngx_string("upstream_url"), NULL, ngx_http_extra_var_upstream_url, 
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-    { ngx_string("upstream_connection_reused"), NULL, ngx_http_extra_var_upstream_connection_reused,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("upstream_connect_start_ts"), NULL, ngx_http_extra_var_upstream_ts,
@@ -700,29 +695,6 @@ ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
 
         v->len = upstream_url.len;
         v->data = upstream_url.data;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
-    } else {
-        v->not_found = 1;
-    }
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_var_upstream_connection_reused(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    if (r->upstream && r->upstream->peer.connection) {
-
-        if (r->upstream->peer.connection->requests > 1) {
-            v->data = (u_char *) "r";
-        } else {
-            v->data = (u_char *) ".";
-        }
-        v->len = 1;
         v->valid = 1;
         v->no_cacheable = 0;
         v->not_found = 0;
