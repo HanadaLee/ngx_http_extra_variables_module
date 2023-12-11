@@ -3,6 +3,7 @@
 | **$dollar**                       | A literal dollar sign.                            |
 | **$sec**                          | Current time in seconds.                          |
 | **$ext**                          | The extension from \$uri.                         |
+| **$resty_request_id**             | Unique request identifier composed of request timestamp, host name and random string. If the request header X-Resty-Request-Id is included, the value of the request header is inherited.|
 | **$has_args**                     | “&” if a request line has arguments, or “?” otherwise|
 | **$location**                     | The name of the current location block.    |
 | **$redirect_count**               | The number of times the current request has been internally.|
