@@ -124,6 +124,9 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
+    {ngx_string("ignore_x_accel_expires"), NULL, ngx_extra_var_ignore_x_accel_expires,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+
     { ngx_string("upstream_url"), NULL, ngx_extra_var_upstream_url, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
@@ -376,6 +379,28 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
+        v->len = 1;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+        v->data = (u_char *) "1";
+    } else {
+        v->len = 1;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+        v->data = (u_char *) "0";
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
         v->len = 1;
         v->valid = 1;
         v->no_cacheable = 0;
