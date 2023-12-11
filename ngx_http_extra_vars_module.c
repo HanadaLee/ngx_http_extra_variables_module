@@ -56,7 +56,7 @@ static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_upstream_ssl(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_upstream_connection_reused(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -143,8 +143,8 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("upstream_url"), NULL, ngx_http_extra_var_upstream_url, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_ssl_session_reused"), NULL, ngx_http_extra_var_upstream_ssl,
-      (uintptr_t) ngx_ssl_get_session_reused, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_connection_reused"), NULL, ngx_http_extra_var_upstream_connection_reused,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("upstream_connect_start_ts"), NULL, ngx_http_extra_var_upstream_ts,
       NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -711,33 +711,24 @@ ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
 }
 
 
-static ngx_int_t 
-ngx_http_extra_var_upstream_ssl(ngx_http_request_t *r,
+static ngx_int_t
+ngx_http_extra_var_upstream_connection_reused(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_ssl_variable_handler_pt  handler = (ngx_ssl_variable_handler_pt) data;
+    if (r->upstream && r->upstream->peer.connection) {
 
-    ngx_str_t  s;
-
-    if (r->upstream->peer.connection->ssl) {
-
-        if (handler(r->upstream->peer.connection, r->pool, &s) != NGX_OK) {
-            return NGX_ERROR;
+        if (r->upstream->peer.connection->requests > 1) {
+            v->data = (u_char *) "r";
+        } else {
+            v->data = (u_char *) ".";
         }
-
-        v->len = s.len;
-        v->data = s.data;
-
-        if (v->len) {
-            v->valid = 1;
-            v->no_cacheable = 0;
-            v->not_found = 0;
-
-            return NGX_OK;
-        }
+        v->len = 1;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+    } else {
+        v->not_found = 1;
     }
-
-    v->not_found = 1;
 
     return NGX_OK;
 }
