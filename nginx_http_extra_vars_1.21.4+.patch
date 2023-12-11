@@ -189,10 +189,21 @@ index ca13f2a..0bfea99 100644
          return NGX_OK;
      }
 diff --git a/src/http/ngx_http_request.c b/src/http/ngx_http_request.c
-index 013b715..c990530 100644
+index 013b715..8ac6263 100644
 --- a/src/http/ngx_http_request.c
 +++ b/src/http/ngx_http_request.c
-@@ -648,6 +648,7 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
+@@ -104,6 +104,10 @@ ngx_http_header_t  ngx_http_headers_in[] = {
+                  offsetof(ngx_http_headers_in_t, if_none_match),
+                  ngx_http_process_unique_header_line },
+ 
++    { ngx_string("X-Resty-Request-Id"), 
++                 offsetof(ngx_http_headers_in_t, x_resty_request_id),
++                 ngx_http_process_unique_header_line },
++
+     { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
+                  ngx_http_process_user_agent },
+ 
+@@ -648,6 +652,7 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
      ssize_t                    n;
      ngx_err_t                  err;
      ngx_int_t                  rc;
@@ -200,7 +211,7 @@ index 013b715..c990530 100644
      ngx_connection_t          *c;
      ngx_http_connection_t     *hc;
      ngx_http_ssl_srv_conf_t   *sscf;
-@@ -754,6 +755,9 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
+@@ -754,6 +759,9 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
                  return;
              }
  
@@ -210,11 +221,54 @@ index 013b715..c990530 100644
              ngx_reusable_connection(c, 0);
  
              rc = ngx_ssl_handshake(c);
+@@ -3809,6 +3817,34 @@ ngx_http_log_error(ngx_log_t *log, u_char *buf, size_t len)
+     r = ctx->request;
+ 
+     if (r) {
++        ngx_str_t                    text;
++        u_char                      *p2, *lowcase;
++        size_t                       len2 = 16;
++        ngx_str_t                    name;
++        ngx_http_variable_value_t   *vv;
++        ngx_uint_t                   hash;
++
++        p2 = (u_char *) "resty_request_id";
++        lowcase = ngx_pnalloc(r->pool, len2);
++
++        if (lowcase == NULL) {
++            return r->log_handler(r, ctx->current_request, p, len);
++        }
++
++        hash = ngx_hash_strlow(lowcase, p2, len2);
++        name.len = len2;
++        name.data = lowcase;
++
++        vv = ngx_http_get_variable(r, &name, hash);
++
++        if (!vv->not_found) {
++            text.data = vv->data;
++            text.len = vv->len;
++            buf = p;
++            p = ngx_snprintf(buf, len, ", request_id: %V", &text);
++            len -= p - buf;
++        }
++
+         return r->log_handler(r, ctx->current_request, p, len);
+ 
+     } else {
 diff --git a/src/http/ngx_http_request.h b/src/http/ngx_http_request.h
-index b1269d2..7d8ee47 100644
+index b1269d2..db99b03 100644
 --- a/src/http/ngx_http_request.h
 +++ b/src/http/ngx_http_request.h
-@@ -404,6 +404,8 @@ struct ngx_http_request_s {
+@@ -188,6 +188,7 @@ typedef struct {
+     ngx_table_elt_t                  *if_unmodified_since;
+     ngx_table_elt_t                  *if_match;
+     ngx_table_elt_t                  *if_none_match;
++    ngx_table_elt_t                  *x_resty_request_id;
+     ngx_table_elt_t                  *user_agent;
+     ngx_table_elt_t                  *referer;
+     ngx_table_elt_t                  *content_length;
+@@ -404,6 +405,8 @@ struct ngx_http_request_s {
      time_t                            lingering_time;
      time_t                            start_sec;
      ngx_msec_t                        start_msec;

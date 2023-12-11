@@ -10,51 +10,55 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
-#define NGX_EXTRA_VAR_REDIRECT_COUNT                 0
-#define NGX_EXTRA_VAR_SUBREQUEST_COUNT               1
+#define NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT                 0
+#define NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT               1
 
-#define NGX_EXTRA_VAR_REQUEST_CREATE_TS              0
-#define NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS        1
+#define NGX_HTTP_EXTRA_VAR_REQUEST_CREATE_TS              0
+#define NGX_HTTP_EXTRA_VAR_RESPONSE_HEADER_SENT_TS        1
 
-#define NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS      0
-#define NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS        1
-#define NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS         2
-#define NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS           3
-#define NGX_EXTRA_VAR_UPSTREAM_HEADER_TS             4
-#define NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS           5
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_START_TS      0
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_END_TS        1
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_START_TS         2
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_END_TS           3
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_HEADER_TS             4
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_RESPONSE_TS           5
 
-#define NGX_EXTRA_VAR_UPSTREAM_SEND_TIME             0
-#define NGX_EXTRA_VAR_UPSTREAM_READ_TIME             1
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_TIME             0
+#define NGX_HTTP_EXTRA_VAR_UPSTREAM_READ_TIME             1
 
 static ngx_int_t ngx_http_extra_vars_add_variables(ngx_conf_t *cf);
 
-static ngx_int_t ngx_extra_var_dollar(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_dollar(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_sec(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_ext(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_has_args(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_location_name(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_has_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_uint(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_uint(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_request_ts(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_upstream_url(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_upstream_ts(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_extra_var_upstream_time(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_upstream_time(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
 #if (NGX_HTTP_CACHE)
-static ngx_int_t ngx_extra_var_cache_file(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #endif
 
@@ -91,68 +95,71 @@ ngx_module_t  ngx_http_extra_vars_module = {
 
 
 static ngx_http_variable_t  ngx_http_extra_vars[] = {
-    { ngx_string("dollar"), NULL, ngx_extra_var_dollar,
+    { ngx_string("dollar"), NULL, ngx_http_extra_var_dollar,
       0, 0, 0 },
 
-    { ngx_string("sec"), NULL, ngx_extra_var_sec, 
+    { ngx_string("sec"), NULL, ngx_http_extra_var_sec, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("ext"), NULL, ngx_extra_var_ext, 
+    { ngx_string("ext"), NULL, ngx_http_extra_var_ext, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("has_args"), NULL, ngx_extra_var_has_args,
+    { ngx_string("resty_request_id"), NULL, ngx_http_extra_var_resty_request_id,
+      0, 0, 0 },
+
+    { ngx_string("has_args"), NULL, ngx_http_extra_var_has_args,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("location_name"), NULL, ngx_extra_var_location_name,
+    { ngx_string("location_name"), NULL, ngx_http_extra_var_location_name,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("redirect_count"), NULL, ngx_extra_var_uint,
-      NGX_EXTRA_VAR_REDIRECT_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("redirect_count"), NULL, ngx_http_extra_var_uint,
+      NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("subrequest_count"), NULL, ngx_extra_var_uint,
-      NGX_EXTRA_VAR_SUBREQUEST_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("subrequest_count"), NULL, ngx_http_extra_var_uint,
+      NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("connect_start_ts"), NULL, ngx_extra_var_connect_start_ts,
+    { ngx_string("connect_start_ts"), NULL, ngx_http_extra_var_connect_start_ts,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_create_ts"), NULL, ngx_extra_var_request_ts,
-      NGX_EXTRA_VAR_REQUEST_CREATE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_create_ts"), NULL, ngx_http_extra_var_request_ts,
+      NGX_HTTP_EXTRA_VAR_REQUEST_CREATE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("response_header_sent_ts"), NULL, ngx_extra_var_request_ts,
-      NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("response_header_sent_ts"), NULL, ngx_http_extra_var_request_ts,
+      NGX_HTTP_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    {ngx_string("ignore_cache_control"), NULL, ngx_extra_var_ignore_cache_control,
+    {ngx_string("ignore_cache_control"), NULL, ngx_http_extra_var_ignore_cache_control,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
-    {ngx_string("ignore_x_accel_expires"), NULL, ngx_extra_var_ignore_x_accel_expires,
+    {ngx_string("ignore_x_accel_expires"), NULL, ngx_http_extra_var_ignore_x_accel_expires,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
-    { ngx_string("upstream_url"), NULL, ngx_extra_var_upstream_url, 
+    { ngx_string("upstream_url"), NULL, ngx_http_extra_var_upstream_url, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_connect_start_ts"), NULL, ngx_extra_var_upstream_ts,
-      NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_connect_start_ts"), NULL, ngx_http_extra_var_upstream_ts,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_send_start_ts"), NULL, ngx_extra_var_upstream_ts,
-      NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_send_start_ts"), NULL, ngx_http_extra_var_upstream_ts,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_START_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_send_end_ts"), NULL, ngx_extra_var_upstream_ts,
-      NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_send_end_ts"), NULL, ngx_http_extra_var_upstream_ts,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_END_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_header_ts"), NULL, ngx_extra_var_upstream_ts,
-      NGX_EXTRA_VAR_UPSTREAM_HEADER_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_header_ts"), NULL, ngx_http_extra_var_upstream_ts,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_HEADER_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_response_ts"), NULL, ngx_extra_var_upstream_ts,
-      NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_response_ts"), NULL, ngx_http_extra_var_upstream_ts,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_RESPONSE_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_send_time"), NULL, ngx_extra_var_upstream_time,
-      NGX_EXTRA_VAR_UPSTREAM_SEND_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_send_time"), NULL, ngx_http_extra_var_upstream_time,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_read_time"), NULL, ngx_extra_var_upstream_time,
-      NGX_EXTRA_VAR_UPSTREAM_READ_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("upstream_read_time"), NULL, ngx_http_extra_var_upstream_time,
+      NGX_HTTP_EXTRA_VAR_UPSTREAM_READ_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
-    { ngx_string("cache_file"), NULL, ngx_extra_var_cache_file, 0,
+    { ngx_string("cache_file"), NULL, ngx_http_extra_var_cache_file, 0,
         NGX_HTTP_VAR_NOCACHEABLE, 0 },
 #endif
 
@@ -180,7 +187,7 @@ ngx_http_extra_vars_add_variables(ngx_conf_t *cf)
 
 
 static ngx_int_t 
-ngx_extra_var_dollar(ngx_http_request_t *r, 
+ngx_http_extra_var_dollar(ngx_http_request_t *r, 
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     v->len = 1;
@@ -194,7 +201,7 @@ ngx_extra_var_dollar(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_sec(ngx_http_request_t *r,
+ngx_http_extra_var_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char      *p;
@@ -218,7 +225,7 @@ ngx_extra_var_sec(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_ext(ngx_http_request_t *r,
+ngx_http_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     v->len = r->exten.len;
@@ -232,7 +239,58 @@ ngx_extra_var_ext(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_has_args(ngx_http_request_t *r,
+ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char      *id, *p;
+    ngx_time_t  *tp;
+
+#if (NGX_OPENSSL)
+    u_char       random_bytes[4];
+#endif
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    if (r->headers_in.x_resty_request_id) {
+        v->len = r->headers_in.x_resty_request_id->value.len;
+        v->data = r->headers_in.x_resty_request_id->value.data;
+        return NGX_OK;
+    }
+
+    tp = ngx_timeofday();
+    id = ngx_pnalloc(r->pool, NGX_TIME_T_LEN + ngx_cycle->hostname.len + 10);
+    if (id == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_sprintf(id, "%xT_%*s_", tp->sec, ngx_cycle->hostname.len, ngx_cycle->hostname.data);
+
+#if (NGX_OPENSSL)
+
+    if (RAND_bytes(random_bytes, 4) == 1) {
+        p = ngx_hex_dump(p, random_bytes, 4);
+        v->len = p - id;
+        v->data = id;
+        return NGX_OK;
+    }
+
+    ngx_ssl_error(NGX_LOG_ERR, r->connection->log, 0, "RAND_bytes() failed");
+
+#endif
+
+    p = ngx_sprintf(p, "%08xD", (uint32_t) ngx_random());
+
+    v->len = p - id;
+    v->data = id;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_has_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->args.len == 0) {
@@ -251,7 +309,7 @@ ngx_extra_var_has_args(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_location_name(ngx_http_request_t *r,
+ngx_http_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_core_loc_conf_t  *clcf;
@@ -269,7 +327,7 @@ ngx_extra_var_location_name(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_uint(ngx_http_request_t *r,
+ngx_http_extra_var_uint(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_uint_t  value;
@@ -281,11 +339,11 @@ ngx_extra_var_uint(ngx_http_request_t *r,
     }
 
     switch (data) {
-    case NGX_EXTRA_VAR_REDIRECT_COUNT:
+    case NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT:
         value = NGX_HTTP_MAX_URI_CHANGES + 1 - r->uri_changes;
         break;
 
-    case NGX_EXTRA_VAR_SUBREQUEST_COUNT:
+    case NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT:
         value = NGX_HTTP_MAX_SUBREQUESTS + 1 - r->subrequests;
         break;
 
@@ -305,7 +363,7 @@ ngx_extra_var_uint(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
+ngx_http_extra_var_connect_start_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char          *p;
@@ -333,7 +391,7 @@ ngx_extra_var_connect_start_ts(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_request_ts(ngx_http_request_t *r,
+ngx_http_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char         *p;
@@ -344,7 +402,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
     }
 
     switch (data) {
-    case NGX_EXTRA_VAR_REQUEST_CREATE_TS:
+    case NGX_HTTP_EXTRA_VAR_REQUEST_CREATE_TS:
         if (!r->start_sec || !r->start_msec) {
             v->not_found = 1;
             return NGX_OK;
@@ -352,7 +410,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
         v->len = ngx_sprintf(p, "%T.%03M", r->start_sec, r->start_msec) - p;
         break;
 
-    case NGX_EXTRA_VAR_RESPONSE_HEADER_SENT_TS:
+    case NGX_HTTP_EXTRA_VAR_RESPONSE_HEADER_SENT_TS:
         if (!r->header_sent_sec || !r->header_sent_msec) {
             v->not_found = 1;
             return NGX_OK;
@@ -375,7 +433,7 @@ ngx_extra_var_request_ts(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
+ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
@@ -397,7 +455,7 @@ ngx_extra_var_ignore_cache_control(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
+ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
@@ -419,7 +477,7 @@ ngx_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_upstream_ts(ngx_http_request_t *r,
+ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                     *p;
@@ -455,27 +513,27 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
     for ( ;; ) {
 
         switch (data) {
-        case NGX_EXTRA_VAR_UPSTREAM_CONNECT_START_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_START_TS:
             ms = state[i].connect_start_msec;
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_CONNECT_END_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_CONNECT_END_TS:
             ms = state[i].connect_end_msec;
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_SEND_START_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_START_TS:
             ms = state[i].send_start_msec;
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_SEND_END_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_END_TS:
             ms = state[i].send_end_msec;
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_HEADER_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_HEADER_TS:
             ms = state[i].header_msec;
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_RESPONSE_TS:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_RESPONSE_TS:
             ms = state[i].response_msec;
             break;
 
@@ -521,7 +579,7 @@ ngx_extra_var_upstream_ts(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_extra_var_upstream_time(ngx_http_request_t *r,
+ngx_http_extra_var_upstream_time(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char                     *p;
@@ -554,11 +612,11 @@ ngx_extra_var_upstream_time(ngx_http_request_t *r,
     for ( ;; ) {
 
         switch (data) {
-        case NGX_EXTRA_VAR_UPSTREAM_SEND_TIME:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_TIME:
             ms = (ngx_msec_int_t) (state[i].send_end_msec - state[i].send_start_msec);
             break;
 
-        case NGX_EXTRA_VAR_UPSTREAM_READ_TIME:
+        case NGX_HTTP_EXTRA_VAR_UPSTREAM_READ_TIME:
             ms = (ngx_msec_int_t) (state[i].response_msec - state[i].header_msec);
             break;
 
@@ -603,7 +661,7 @@ ngx_extra_var_upstream_time(ngx_http_request_t *r,
 
 
 static ngx_int_t 
-ngx_extra_var_upstream_url(ngx_http_request_t *r,
+ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     char                    *uri_separator;
@@ -646,7 +704,7 @@ ngx_extra_var_upstream_url(ngx_http_request_t *r,
 
 #if (NGX_HTTP_CACHE)
 static ngx_int_t
-ngx_extra_var_cache_file(ngx_http_request_t *r,
+ngx_http_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_cache_t  *c;
