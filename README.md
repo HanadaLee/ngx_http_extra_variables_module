@@ -4,7 +4,9 @@
 | **$sec**                          | Current time in seconds.                          |
 | **$ext**                          | The extension from \$uri.                         |
 | **$resty_request_id**             | Unique request identifier composed of request timestamp, host name and random string. If the request header X-Resty-Request-Id is included, the value inherited from this request header.|
-| **$has_args**                     | “&” if a request line has arguments, or “?” otherwise|
+| **$has_args**                     | "&" if a request line has arguments, or "?" otherwise|
+| **$is_internal**                  | "1" if the current request is an "internal request", i.e., a request initiated from inside the current Nginx server instead of from the client side, or "0" otherwise.|
+| **$is_subrequest**                | "1" if the current request is an Nginx subrequest, or "0" otherwise.|
 | **$location**                     | The name of the current location block.    |
 | **$redirect_count**               | The number of times the current request has been internally.|
 | **$subrequest_count**             | The number of subrequests performed for this request.|

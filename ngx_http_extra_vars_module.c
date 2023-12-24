@@ -42,6 +42,10 @@ static ngx_int_t ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_has_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_is_internal(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_is_subrequest(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_uint(ngx_http_request_t *r,
@@ -117,6 +121,12 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       0, 0, 0 },
 
     { ngx_string("has_args"), NULL, ngx_http_extra_var_has_args,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("is_internal"), NULL, ngx_http_extra_var_is_internal,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("is_subrequest"), NULL, ngx_http_extra_var_is_subrequest,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("location_name"), NULL, ngx_http_extra_var_location_name,
@@ -323,6 +333,44 @@ ngx_http_extra_var_has_args(ngx_http_request_t *r,
 
 
 static ngx_int_t
+ngx_http_variable_is_internal(ngx_http_request_t *r,
+                                ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (r->internal) {
+        v->data = (u_char *) "1";
+    } else {
+        v->data = (u_char *) "0";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_variable_is_subrequest(ngx_http_request_t *r,
+                                ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (r->parent) {
+        v->data = (u_char *) "1";
+    } else {
+        v->data = (u_char *) "0";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_extra_var_location_name(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -450,16 +498,16 @@ static ngx_int_t
 ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    v->len = 1;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
         v->data = (u_char *) "1";
     } else {
         v->data = (u_char *) "0";
     }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
 
     return NGX_OK;
 }
@@ -469,16 +517,16 @@ static ngx_int_t
 ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    v->len = 1;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
         v->data = (u_char *) "1";
     } else {
         v->data = (u_char *) "0";
     }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
 
     return NGX_OK;
 }
@@ -714,16 +762,16 @@ static ngx_int_t
 ngx_http_extra_var_gzip_vary(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    v->len = 1;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
     if (r->gzip_vary) {
         v->data = (u_char *) "1";
     } else {
         v->data = (u_char *) "0";
     }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
 
     return NGX_OK;
 }
