@@ -333,7 +333,7 @@ ngx_http_extra_var_has_args(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_is_internal(ngx_http_request_t *r,
+ngx_http_extra_var_is_internal(ngx_http_request_t *r,
                                 ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->internal) {
@@ -352,7 +352,7 @@ ngx_http_variable_is_internal(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_variable_is_subrequest(ngx_http_request_t *r,
+ngx_http_extra_var_is_subrequest(ngx_http_request_t *r,
                                 ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->parent) {
