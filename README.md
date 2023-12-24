@@ -26,5 +26,4 @@
 | **$upstream_response_ts**           | Keeps timestamp of upstream response body sent; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.|
 | **$upstream_send_time**           | Keeps time spent on sending request to the upstream server; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 | **$upstream_read_time**           | Keeps time spent on reading response body from the upstream server; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.|
-| **$gzip_vary**                    | "1" if response is compressible and gzip_vary is enable, or "0" otherwise.|
 | **$cache_file**                   | The cache file path for a cached.                 |
