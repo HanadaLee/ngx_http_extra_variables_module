@@ -61,6 +61,11 @@ static ngx_int_t ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
 static ngx_int_t ngx_http_extra_var_upstream_time(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
+#if (NGX_HTTP_GZIP)
+static ngx_int_t ngx_http_extra_var_gzip_vary(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+#endif
+
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -161,6 +166,11 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     { ngx_string("upstream_read_time"), NULL, ngx_http_extra_var_upstream_time,
       NGX_HTTP_EXTRA_VAR_UPSTREAM_READ_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+#if (NGX_HTTP_GZIP)
+    { ngx_string("gzip_vary"), NULL, ngx_http_extra_var_gzip_vary, 0,
+        NGX_HTTP_VAR_NOCACHEABLE, 0 },
+#endif
 
 #if (NGX_HTTP_CACHE)
     { ngx_string("cache_file"), NULL, ngx_http_extra_var_cache_file, 0,
@@ -440,17 +450,14 @@ static ngx_int_t
 ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
-        v->len = 1;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
         v->data = (u_char *) "1";
     } else {
-        v->len = 1;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
         v->data = (u_char *) "0";
     }
 
@@ -462,17 +469,14 @@ static ngx_int_t
 ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
     if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
-        v->len = 1;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
         v->data = (u_char *) "1";
     } else {
-        v->len = 1;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
         v->data = (u_char *) "0";
     }
 
@@ -704,6 +708,26 @@ ngx_http_extra_var_upstream_url(ngx_http_request_t *r,
 
     return NGX_OK;
 }
+
+#if (NGX_HTTP_GZIP)
+static ngx_int_t
+ngx_http_extra_var_gzip_vary(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    if (r->gzip_vary) {
+        v->data = (u_char *) "1";
+    } else {
+        v->data = (u_char *) "0";
+    }
+
+    return NGX_OK;
+}
+#endif
 
 
 #if (NGX_HTTP_CACHE)
