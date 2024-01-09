@@ -1,0 +1,443 @@
+diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
+index 8a42b67..9a36b18 100644
+--- a/src/event/ngx_event_openssl.c
++++ b/src/event/ngx_event_openssl.c
+@@ -1796,9 +1796,10 @@ ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session)
+ ngx_int_t
+ ngx_ssl_handshake(ngx_connection_t *c)
+ {
+-    int        n, sslerr;
+-    ngx_err_t  err;
+-    ngx_int_t  rc;
++    int         n, sslerr;
++    ngx_err_t   err;
++    ngx_int_t   rc;
++    ngx_time_t *tp;
+ 
+ #ifdef SSL_READ_EARLY_DATA_SUCCESS
+     if (c->ssl->try_early_data) {
+@@ -1875,6 +1876,9 @@ ngx_ssl_handshake(ngx_connection_t *c)
+ 
+         c->ssl->handshaked = 1;
+ 
++        tp = ngx_timeofday();
++        c->ssl->handshake_end_msec = tp->sec * 1000 + tp->msec;
++
+         return NGX_OK;
+     }
+ 
+@@ -6017,6 +6021,91 @@ ngx_ssl_get_client_v_remain(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s)
+ }
+ 
+ 
++ngx_int_t
++ngx_ssl_get_handshake_time(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s)
++{
++    ngx_msec_int_t   ms;
++    u_char          *p;
++    ngx_time_t      *tp;
++
++    if (c->ssl == NULL) {
++        ngx_str_null(s);
++
++        return NGX_OK;
++    }
++
++    tp = ngx_timeofday();
++
++    if (c->ssl->handshake_end_msec == 0) {
++        ms = tp->sec * 1000 + tp->msec - c->ssl->handshake_start_msec;
++    } else {
++        ms = c->ssl->handshake_end_msec - c->ssl->handshake_start_msec;
++    }
++
++    ms = ngx_max(ms, 0);
++
++    p = ngx_pnalloc(pool, NGX_TIME_T_LEN + 4);
++    if (p == NULL) {
++        return NGX_ERROR;
++    }
++
++    s->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
++    s->data = p;
++
++    return NGX_OK;
++}
++
++
++ngx_int_t
++ngx_ssl_get_handshake_start_ts(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s) {
++    ngx_msec_t       ms;
++    u_char          *p;
++
++    if (c->ssl == NULL || c->ssl->handshake_start_msec == 0) {
++        ngx_str_null(s);
++
++        return NGX_OK;
++    }
++
++    ms = c->ssl->handshake_start_msec;
++
++    p = ngx_pnalloc(pool, NGX_TIME_T_LEN + 4);
++    if (p == NULL) {
++        return NGX_ERROR;
++    }
++
++    s->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
++    s->data = p;
++
++    return NGX_OK;
++}
++
++
++ngx_int_t
++ngx_ssl_get_handshake_end_ts(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s) {
++    ngx_msec_t       ms;
++    u_char          *p;
++
++    if (c->ssl == NULL || c->ssl->handshake_end_msec == 0) {
++        ngx_str_null(s);
++
++        return NGX_OK;
++    }
++
++    ms = c->ssl->handshake_end_msec;
++
++    p = ngx_pnalloc(pool, NGX_TIME_T_LEN + 4);
++    if (p == NULL) {
++        return NGX_ERROR;
++    }
++
++    s->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
++    s->data = p;
++
++    return NGX_OK;
++}
++
++
+ static time_t
+ ngx_ssl_parse_time(
+ #if OPENSSL_VERSION_NUMBER > 0x10100000L
+diff --git a/src/event/ngx_event_openssl.h b/src/event/ngx_event_openssl.h
+index c062f91..85ba641 100644
+--- a/src/event/ngx_event_openssl.h
++++ b/src/event/ngx_event_openssl.h
+@@ -109,6 +109,9 @@ struct ngx_ssl_connection_s {
+     ngx_event_handler_pt        saved_read_handler;
+     ngx_event_handler_pt        saved_write_handler;
+ 
++    ngx_msec_t                  handshake_start_msec;
++    ngx_msec_t                  handshake_end_msec;
++
+     ngx_ssl_ocsp_t             *ocsp;
+ 
+     u_char                      early_buf;
+@@ -307,6 +310,12 @@ ngx_int_t ngx_ssl_get_client_v_end(ngx_connection_t *c, ngx_pool_t *pool,
+     ngx_str_t *s);
+ ngx_int_t ngx_ssl_get_client_v_remain(ngx_connection_t *c, ngx_pool_t *pool,
+     ngx_str_t *s);
++ngx_int_t ngx_ssl_get_handshake_time(ngx_connection_t *c, ngx_pool_t *pool,
++    ngx_str_t *s);
++ngx_int_t ngx_ssl_get_handshake_start_ts(ngx_connection_t *c, ngx_pool_t *pool,
++    ngx_str_t *s);
++ngx_int_t ngx_ssl_get_handshake_end_ts(ngx_connection_t *c, ngx_pool_t *pool,
++    ngx_str_t *s);
+ 
+ 
+ ngx_int_t ngx_ssl_handshake(ngx_connection_t *c);
+diff --git a/src/http/modules/ngx_http_ssl_module.c b/src/http/modules/ngx_http_ssl_module.c
+index 1c92d9f..c011ae7 100644
+--- a/src/http/modules/ngx_http_ssl_module.c
++++ b/src/http/modules/ngx_http_ssl_module.c
+@@ -399,6 +399,15 @@ static ngx_http_variable_t  ngx_http_ssl_vars[] = {
+     { ngx_string("ssl_client_v_remain"), NULL, ngx_http_ssl_variable,
+       (uintptr_t) ngx_ssl_get_client_v_remain, NGX_HTTP_VAR_CHANGEABLE, 0 },
+ 
++    { ngx_string("ssl_handshake_time"), NULL, ngx_http_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_time, NGX_HTTP_VAR_CHANGEABLE, 0 },
++
++    { ngx_string("ssl_handshake_start_ts"), NULL, ngx_http_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_start_ts, NGX_HTTP_VAR_CHANGEABLE, 0 },
++
++    { ngx_string("ssl_handshake_end_ts"), NULL, ngx_http_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_end_ts, NGX_HTTP_VAR_CHANGEABLE, 0 },
++
+       ngx_http_null_variable
+ };
+ 
+diff --git a/src/http/ngx_http_header_filter_module.c b/src/http/ngx_http_header_filter_module.c
+index 90525ef..7408d75 100644
+--- a/src/http/ngx_http_header_filter_module.c
++++ b/src/http/ngx_http_header_filter_module.c
+@@ -167,6 +167,7 @@ ngx_http_header_filter(ngx_http_request_t *r)
+     ngx_connection_t          *c;
+     ngx_http_core_loc_conf_t  *clcf;
+     ngx_http_core_srv_conf_t  *cscf;
++    ngx_time_t                *tp;
+     u_char                     addr[NGX_SOCKADDR_STRLEN];
+ 
+     if (r->header_sent) {
+@@ -175,6 +176,10 @@ ngx_http_header_filter(ngx_http_request_t *r)
+ 
+     r->header_sent = 1;
+ 
++    tp = ngx_timeofday();
++    r->header_sent_sec = tp->sec;
++    r->header_sent_msec = tp->msec;
++
+     if (r != r->main) {
+         return NGX_OK;
+     }
+diff --git a/src/http/ngx_http_request.c b/src/http/ngx_http_request.c
+index bd2be5e..f6a1def 100644
+--- a/src/http/ngx_http_request.c
++++ b/src/http/ngx_http_request.c
+@@ -97,6 +97,10 @@ ngx_http_header_t  ngx_http_headers_in[] = {
+                  offsetof(ngx_http_headers_in_t, if_none_match),
+                  ngx_http_process_unique_header_line },
+ 
++    { ngx_string("X-Resty-Request-Id"), 
++                 offsetof(ngx_http_headers_in_t, x_resty_request_id),
++                 ngx_http_process_unique_header_line },
++
+     { ngx_string("User-Agent"), offsetof(ngx_http_headers_in_t, user_agent),
+                  ngx_http_process_user_agent },
+ 
+@@ -668,6 +672,7 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
+     ssize_t                    n;
+     ngx_err_t                  err;
+     ngx_int_t                  rc;
++    ngx_time_t                *tp;
+     ngx_connection_t          *c;
+     ngx_http_connection_t     *hc;
+     ngx_http_ssl_srv_conf_t   *sscf;
+@@ -774,6 +779,9 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
+                 return;
+             }
+ 
++            tp = ngx_timeofday();
++            c->ssl->handshake_start_msec = tp->sec * 1000 + tp->msec;
++
+             ngx_reusable_connection(c, 0);
+ 
+             rc = ngx_ssl_handshake(c);
+@@ -3850,6 +3858,34 @@ ngx_http_log_error(ngx_log_t *log, u_char *buf, size_t len)
+     r = ctx->request;
+ 
+     if (r) {
++        ngx_str_t                    text;
++        u_char                      *p2, *lowcase;
++        size_t                       len2 = 16;
++        ngx_str_t                    name;
++        ngx_http_variable_value_t   *vv;
++        ngx_uint_t                   hash;
++
++        p2 = (u_char *) "resty_request_id";
++        lowcase = ngx_pnalloc(r->pool, len2);
++
++        if (lowcase == NULL) {
++            return r->log_handler(r, ctx->current_request, p, len);
++        }
++
++        hash = ngx_hash_strlow(lowcase, p2, len2);
++        name.len = len2;
++        name.data = lowcase;
++
++        vv = ngx_http_get_variable(r, &name, hash);
++
++        if (!vv->not_found) {
++            text.data = vv->data;
++            text.len = vv->len;
++            buf = p;
++            p = ngx_snprintf(buf, len, ", request_id: %V", &text);
++            len -= p - buf;
++        }
++
+         return r->log_handler(r, ctx->current_request, p, len);
+ 
+     } else {
+diff --git a/src/http/ngx_http_request.h b/src/http/ngx_http_request.h
+index cc3b7c0..d14c9b8 100644
+--- a/src/http/ngx_http_request.h
++++ b/src/http/ngx_http_request.h
+@@ -189,6 +189,7 @@ typedef struct {
+     ngx_table_elt_t                  *if_unmodified_since;
+     ngx_table_elt_t                  *if_match;
+     ngx_table_elt_t                  *if_none_match;
++    ngx_table_elt_t                  *x_resty_request_id;
+     ngx_table_elt_t                  *user_agent;
+     ngx_table_elt_t                  *referer;
+     ngx_table_elt_t                  *content_length;
+@@ -407,6 +408,8 @@ struct ngx_http_request_s {
+     time_t                            lingering_time;
+     time_t                            start_sec;
+     ngx_msec_t                        start_msec;
++    time_t                            header_sent_sec;
++    ngx_msec_t                        header_sent_msec;
+ 
+     ngx_uint_t                        method;
+     ngx_uint_t                        http_version;
+diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
+index 2be233c..3da3cb2 100644
+--- a/src/http/ngx_http_upstream.c
++++ b/src/http/ngx_http_upstream.c
+@@ -1541,6 +1541,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
+     r->connection->log->action = "connecting to upstream";
+ 
+     if (u->state && u->state->response_time == (ngx_msec_t) -1) {
++        u->state->response_msec = ngx_current_msec;
+         u->state->response_time = ngx_current_msec - u->start_time;
+     }
+ 
+@@ -1555,6 +1556,12 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
+ 
+     u->start_time = ngx_current_msec;
+ 
++    u->state->connect_start_msec = ngx_current_msec;
++    u->state->connect_end_msec = (ngx_msec_t) -1;
++    u->state->send_start_msec = (ngx_msec_t) -1;
++    u->state->send_end_msec = (ngx_msec_t) -1;
++    u->state->header_msec = (ngx_msec_t) -1;
++    u->state->response_msec = (ngx_msec_t) -1;
+     u->state->response_time = (ngx_msec_t) -1;
+     u->state->connect_time = (ngx_msec_t) -1;
+     u->state->header_time = (ngx_msec_t) -1;
+@@ -2100,9 +2107,12 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
+                    "http upstream send request");
+ 
+     if (u->state->connect_time == (ngx_msec_t) -1) {
++        u->state->connect_end_msec = ngx_current_msec;
+         u->state->connect_time = ngx_current_msec - u->start_time;
+     }
+ 
++        u->state->send_start_msec = ngx_current_msec;
++
+     if (!u->request_sent && ngx_http_upstream_test_connect(c) != NGX_OK) {
+         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
+         return;
+@@ -2161,6 +2171,8 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
+         ngx_del_timer(c->write);
+     }
+ 
++    u->state->send_end_msec = ngx_current_msec;
++
+     if (c->tcp_nopush == NGX_TCP_NOPUSH_SET) {
+         if (ngx_tcp_push(c->fd) == -1) {
+             ngx_log_error(NGX_LOG_CRIT, c->log, ngx_socket_errno,
+@@ -2515,6 +2527,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
+ 
+     /* rc == NGX_OK */
+ 
++    u->state->header_msec = ngx_current_msec;
+     u->state->header_time = ngx_current_msec - u->start_time;
+ 
+     if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
+@@ -4520,6 +4533,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
+     }
+ 
+     if (u->state && u->state->response_time == (ngx_msec_t) -1) {
++        u->state->response_msec = ngx_current_msec;
+         u->state->response_time = ngx_current_msec - u->start_time;
+ 
+         if (u->pipe && u->pipe->read_length) {
+diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
+index 15a35d9..4f98aaa 100644
+--- a/src/http/ngx_http_upstream.h
++++ b/src/http/ngx_http_upstream.h
+@@ -62,6 +62,12 @@ typedef struct {
+     ngx_msec_t                       connect_time;
+     ngx_msec_t                       header_time;
+     ngx_msec_t                       queue_time;
++    ngx_msec_t                       connect_start_msec;
++    ngx_msec_t                       connect_end_msec;
++    ngx_msec_t                       send_start_msec;
++    ngx_msec_t                       send_end_msec;
++    ngx_msec_t                       header_msec;
++    ngx_msec_t                       response_msec;
+     off_t                            response_length;
+     off_t                            bytes_received;
+     off_t                            bytes_sent;
+diff --git a/src/http/v2/ngx_http_v2_filter_module.c b/src/http/v2/ngx_http_v2_filter_module.c
+index 2024395..381e133 100644
+--- a/src/http/v2/ngx_http_v2_filter_module.c
++++ b/src/http/v2/ngx_http_v2_filter_module.c
+@@ -113,6 +113,7 @@ ngx_http_v2_header_filter(ngx_http_request_t *r)
+     ngx_http_v2_connection_t  *h2c;
+     ngx_http_core_loc_conf_t  *clcf;
+     ngx_http_core_srv_conf_t  *cscf;
++    ngx_time_t                *tp;
+     u_char                     addr[NGX_SOCKADDR_STRLEN];
+ 
+     static const u_char nginx[8] = "\x87\x3d\x65\xaa\xc2\xa1\x3e\xbf";
+@@ -143,6 +144,10 @@ ngx_http_v2_header_filter(ngx_http_request_t *r)
+ 
+     r->header_sent = 1;
+ 
++    tp = ngx_timeofday();
++    r->header_sent_sec = tp->sec;
++    r->header_sent_msec = tp->msec;
++
+     if (r != r->main) {
+         return NGX_OK;
+     }
+diff --git a/src/http/v3/ngx_http_v3_filter_module.c b/src/http/v3/ngx_http_v3_filter_module.c
+index 4d2276d..264a0f9 100644
+--- a/src/http/v3/ngx_http_v3_filter_module.c
++++ b/src/http/v3/ngx_http_v3_filter_module.c
+@@ -94,6 +94,7 @@ ngx_http_v3_header_filter(ngx_http_request_t *r)
+     ngx_http_v3_filter_ctx_t  *ctx;
+     ngx_http_core_loc_conf_t  *clcf;
+     ngx_http_core_srv_conf_t  *cscf;
++    ngx_time_t                *tp;
+     u_char                     addr[NGX_SOCKADDR_STRLEN];
+ 
+     if (r->http_version != NGX_HTTP_VERSION_30) {
+@@ -106,6 +107,10 @@ ngx_http_v3_header_filter(ngx_http_request_t *r)
+ 
+     r->header_sent = 1;
+ 
++    tp = ngx_timeofday();
++    r->header_sent_sec = tp->sec;
++    r->header_sent_msec = tp->msec;
++
+     if (r != r->main) {
+         return NGX_OK;
+     }
+diff --git a/src/stream/ngx_stream_ssl_module.c b/src/stream/ngx_stream_ssl_module.c
+index 1ba1825..1ebbe65 100644
+--- a/src/stream/ngx_stream_ssl_module.c
++++ b/src/stream/ngx_stream_ssl_module.c
+@@ -322,6 +322,15 @@ static ngx_stream_variable_t  ngx_stream_ssl_vars[] = {
+     { ngx_string("ssl_client_v_remain"), NULL, ngx_stream_ssl_variable,
+       (uintptr_t) ngx_ssl_get_client_v_remain, NGX_STREAM_VAR_CHANGEABLE, 0 },
+ 
++    { ngx_string("ssl_handshake_time"), NULL, ngx_stream_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_time, NGX_STREAM_VAR_CHANGEABLE, 0 },
++
++    { ngx_string("ssl_handshake_start_ts"), NULL, ngx_stream_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_start_ts, NGX_STREAM_VAR_CHANGEABLE, 0 },
++
++    { ngx_string("ssl_handshake_end_ts"), NULL, ngx_stream_ssl_variable,
++      (uintptr_t) ngx_ssl_get_handshake_end_ts, NGX_STREAM_VAR_CHANGEABLE, 0 },
++
+       ngx_stream_null_variable
+ };
+ 
+@@ -398,6 +407,7 @@ ngx_stream_ssl_init_connection(ngx_ssl_t *ssl, ngx_connection_t *c)
+     ngx_stream_session_t        *s;
+     ngx_stream_ssl_conf_t       *sslcf;
+     ngx_stream_core_srv_conf_t  *cscf;
++    ngx_time_t                  *tp;
+ 
+     s = c->data;
+ 
+@@ -411,6 +421,9 @@ ngx_stream_ssl_init_connection(ngx_ssl_t *ssl, ngx_connection_t *c)
+         return NGX_ERROR;
+     }
+ 
++    tp = ngx_timeofday();
++    c->ssl->handshake_start_msec = tp->sec * 1000 + tp->msec;
++
+     rc = ngx_ssl_handshake(c);
+ 
+     if (rc == NGX_ERROR) {
