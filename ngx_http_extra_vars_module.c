@@ -664,18 +664,18 @@ ngx_http_extra_var_upstream_time(ngx_http_request_t *r,
 
         switch (data) {
         case NGX_HTTP_EXTRA_VAR_UPSTREAM_SEND_TIME:
-            if (state[i].send_start_msec != 0 && state[i].send_end_msec != 0) {
-                ms = (ngx_msec_int_t) (state[i].send_end_msec - state[i].send_start_msec);
+            if (state[i].send_start_msec == (ngx_msec_t) -1 || state[i].send_end_msec == (ngx_msec_t) -1) {
+                ms = (ngx_msec_t) -1
             } else {
-                ms = -1;
+                ms = (ngx_msec_t) (state[i].send_end_msec - state[i].send_start_msec);
             }
             break;
 
         case NGX_HTTP_EXTRA_VAR_UPSTREAM_READ_TIME:
-            if (state[i].header_msec != 0 && state[i].response_msec != 0) {
-                ms = (ngx_msec_int_t) (state[i].response_msec - state[i].header_msec);
+            if (state[i].header_msec == (ngx_msec_t) -1 || state[i].response_msec == (ngx_msec_t) -1) {
+                ms = (ngx_msec_t) -1
             } else {
-                ms = -1;
+                ms = (ngx_msec_t) (state[i].response_msec - state[i].header_msec);
             }
             break;
 
