@@ -659,7 +659,7 @@ ngx_http_extra_var_upstream_ts(ngx_http_request_t *r,
             return NGX_OK;
         }
 
-        if (ms != -1) {
+        if (ms != (ngx_msec_t) -1) {
             ms = (ngx_msec_t)
                 (tp->sec * 1000 + tp->msec + ms - ngx_current_msec);
             p = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000);
