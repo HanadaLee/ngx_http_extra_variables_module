@@ -11,7 +11,7 @@ A literal dollar sign.
 Current time in seconds.
 
 #### \$ext
-The extension from #### \$uri.
+The extension from \$uri.
 
 #### \$resty_request_id
 Unique request identifier composed of request timestamp, host name and random string. If the request header X-Resty-Request-Id is included, the value inherited from this request header.
@@ -34,8 +34,8 @@ The number of times the current request has been internally.
 #### \$subrequest_count
 The number of subrequests performed for this request.
 
-#### \$connect_start_ts
-Connect start timestamp in seconds with the milliseconds resolution.
+#### \$connection_established_ts
+Connection established timestamp in seconds with the milliseconds resolution.
 
 #### \$ssl_handshake_start_ts
 SSL handshake start timestamp in seconds with the milliseconds resolution.
@@ -46,11 +46,17 @@ SSL handshake finish timestamp in seconds with the milliseconds resolution.
 #### \$ssl_handshake_time
 Keeps time spent on ssl handshaking in seconds with the milliseconds resolution.
 
-#### \$request_create_ts
-Request create timestamp in seconds with the milliseconds resolution.
+#### \$request_created_ts
+Request created timestamp in seconds with the milliseconds resolution.
 
 #### \$response_header_sent_ts
 Response header sent timestamp in seconds with the milliseconds resolution.
+
+#### \$request_handling_time
+Keeps time spent on handling request internally from receiving the request to sending the response header to the client.
+
+#### \$response_body_time
+Keeps time spent on sending the response body to the client.
 
 #### \$ignore_cache_control
 "1" if the value of the proxy_ignore_header directive contains Cache-Control, or "0" otherwise.
@@ -61,11 +67,14 @@ Response header sent timestamp in seconds with the milliseconds resolution.
 #### \$upstream_url
 Full upstream request url.
 
-#### \$upstream_connect_start_ts
-Keeps timestamp of upstream connection starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
+#### \$upstream_start_ts
+Keeps timestamp of upstream starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-#### \$upstream_connect_end_ts
-Keeps timestamp of upstream connection ends; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
+#### \$upstream_ssl_start_ts
+Keeps timestamp of upstream ssl handshake starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
+
+#### \$upstream_ssl_time
+Keeps time spent on upstream ssl handshake; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
 #### \$upstream_send_start_ts
 Keeps timestamp of upstream request send starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
@@ -91,13 +100,17 @@ The cache file path for a cached.
 
 ## Off topic
 
-The following is some timestamp calculation logic
+The following is some timestamp calculation logic.  The variables calculated using $msec have accurate values only when used in the access logs. Their values may not be accurate if used outside the log phase.
 
-- \$request_time = \$msec - \$request_create_ts (Just in access log)
-- \$connection_time = \$msec - \$connect_start_ts (Just in access log)
+- \$connection_time = \$msec - \$connect_established_ts (connections may be reused)
 - \$ssl_handshake_time = \$ssl_handshake_end_ts - \$ssl_handshake_start_ts
-- \$upstream_connect_time = \$upstream_connect_end_ts - \$upstream_connect_start_ts
-- \$upstream_header_time = \$upstream_header_ts - \$upstream_connect_start_ts
-- \$upstream_response_time = \$upstream_end_ts - \$upstream_connect_start_ts
+- \$upstream_dns_time = \$upstream_dns_end_ts - \$upstream_dns_start_ts
+- \$upstream_connect_time = \$upstream_send_start_ts - \$upstream_start_ts
+- \$upstream_ssl_time = \$upstream_send_start_ts - \$upstream_ssl_start_ts
 - \$upstream_send_time = \$upstream_send_end_ts - \$upstream_send_start_ts
-- \$upstream_read_time = \$upstream_end_ts - \$upstream_header_ts
+- \$upstream_read_time = \$upstream_end_ts - \$upstream_send_end_ts
+- \$upstream_header_time = \$upstream_header_ts - \$upstream_start_ts
+- \$upstream_response_time = \$upstream_end_ts - \$upstream_start_ts
+- \$request_handling_time = \$response_header_sent_ts - \$request_created_ts
+- \$response_body_time = \$msec - \$response_header_sent_ts
+- \$request_time = \$msec - \$request_created_ts

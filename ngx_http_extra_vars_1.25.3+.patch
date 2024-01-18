@@ -278,39 +278,33 @@ index cc3b7c0..d14c9b8 100644
      ngx_uint_t                        method;
      ngx_uint_t                        http_version;
 diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
-index 2be233c..fd02cfb 100644
+index 2be233c..37b8ab5 100644
 --- a/src/http/ngx_http_upstream.c
 +++ b/src/http/ngx_http_upstream.c
-@@ -1541,6 +1541,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
-     r->connection->log->action = "connecting to upstream";
- 
-     if (u->state && u->state->response_time == (ngx_msec_t) -1) {
-+        u->state->response_msec = ngx_current_msec;
-         u->state->response_time = ngx_current_msec - u->start_time;
-     }
- 
-@@ -1555,6 +1556,12 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
+@@ -1555,6 +1555,11 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
  
      u->start_time = ngx_current_msec;
  
-+    u->state->connect_start_msec = ngx_current_msec;
-+    u->state->connect_end_msec = (ngx_msec_t) -1;
++    u->state->start_msec = ngx_current_msec;
++    u->state->ssl_start_msec = (ngx_msec_t) -1;
 +    u->state->send_start_msec = (ngx_msec_t) -1;
 +    u->state->send_end_msec = (ngx_msec_t) -1;
-+    u->state->header_msec = (ngx_msec_t) -1;
-+    u->state->response_msec = (ngx_msec_t) -1;
++
      u->state->response_time = (ngx_msec_t) -1;
      u->state->connect_time = (ngx_msec_t) -1;
      u->state->header_time = (ngx_msec_t) -1;
-@@ -2100,6 +2107,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
-                    "http upstream send request");
- 
-     if (u->state->connect_time == (ngx_msec_t) -1) {
-+        u->state->connect_end_msec = ngx_current_msec;
-         u->state->connect_time = ngx_current_msec - u->start_time;
+@@ -1754,6 +1759,10 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,
+         }
      }
  
-@@ -2108,6 +2116,10 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
++    if (u->state && u->state->ssl_start_msec == (ngx_msec_t) -1) {
++        u->state->ssl_start_msec = ngx_current_msec;
++    }
++
+     r->connection->log->action = "SSL handshaking to upstream";
+ 
+     rc = ngx_ssl_handshake(c);
+@@ -2108,6 +2117,10 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
          return;
      }
  
@@ -321,7 +315,7 @@ index 2be233c..fd02cfb 100644
      c->log->action = "sending request to upstream";
  
      rc = ngx_http_upstream_send_request_body(r, u, do_write);
-@@ -2161,6 +2173,8 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
+@@ -2161,6 +2174,8 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
          ngx_del_timer(c->write);
      }
  
@@ -330,36 +324,18 @@ index 2be233c..fd02cfb 100644
      if (c->tcp_nopush == NGX_TCP_NOPUSH_SET) {
          if (ngx_tcp_push(c->fd) == -1) {
              ngx_log_error(NGX_LOG_CRIT, c->log, ngx_socket_errno,
-@@ -2515,6 +2529,7 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
- 
-     /* rc == NGX_OK */
- 
-+    u->state->header_msec = ngx_current_msec;
-     u->state->header_time = ngx_current_msec - u->start_time;
- 
-     if (u->headers_in.status_n >= NGX_HTTP_SPECIAL_RESPONSE) {
-@@ -4520,6 +4535,7 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
-     }
- 
-     if (u->state && u->state->response_time == (ngx_msec_t) -1) {
-+        u->state->response_msec = ngx_current_msec;
-         u->state->response_time = ngx_current_msec - u->start_time;
- 
-         if (u->pipe && u->pipe->read_length) {
 diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
-index 15a35d9..4f98aaa 100644
+index 15a35d9..1e24eec 100644
 --- a/src/http/ngx_http_upstream.h
 +++ b/src/http/ngx_http_upstream.h
-@@ -62,6 +62,12 @@ typedef struct {
+@@ -62,6 +62,10 @@ typedef struct {
      ngx_msec_t                       connect_time;
      ngx_msec_t                       header_time;
      ngx_msec_t                       queue_time;
-+    ngx_msec_t                       connect_start_msec;
-+    ngx_msec_t                       connect_end_msec;
++    ngx_msec_t                       start_msec;
++    ngx_msec_t                       ssl_start_msec;
 +    ngx_msec_t                       send_start_msec;
 +    ngx_msec_t                       send_end_msec;
-+    ngx_msec_t                       header_msec;
-+    ngx_msec_t                       response_msec;
      off_t                            response_length;
      off_t                            bytes_received;
      off_t                            bytes_sent;
