@@ -4,6 +4,43 @@ A collection of extra variables for NGINX. Used to meet logging or other needs.
 
 ## Embedded Variables
 
+### \$request_uri_path
+
+Full original request URI path (without arguments).
+
+### \$request_uri_args
+
+Full original request URI arguments.
+
+### \$request_uri_is_args
+
+“?” if original request URI has arguments, or an empty string otherwise.
+
+### \$request_uri_has_args
+
+"&" if original request URI has arguments, or "?" otherwise.
+
+### \$rewritten_uri
+
+Full rewritten URI (with arguments).
+The value of $rewritten_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
+
+### \$rewritten_uri_path
+
+Full rewritten URI path (without arguments).
+The value of $rewritten_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
+
+### \$normalized_rewritten_uri
+
+current URI in request (with arguments), normalized.
+The value of $normalized_rewritten_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
+
+### \$normalized_rewritten_uri_path
+
+current URI in request (without arguments), normalized.
+The value is consistent with $uri.
+The value of $normalized_rewritten_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
+
 #### \$dollar
 A literal dollar sign.
 

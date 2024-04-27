@@ -33,6 +33,22 @@
 
 static ngx_int_t ngx_http_extra_vars_add_variables(ngx_conf_t *cf);
 
+static ngx_int_t ngx_http_extra_var_request(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_request_uri_path(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_request_uri_args(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_request_uri_is_args(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_request_uri_has_args(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_rewritten_uri(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_rewritten_uri_path(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_normalized_rewritten_uri(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_dollar(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_sec(ngx_http_request_t *r,
@@ -105,6 +121,34 @@ ngx_module_t  ngx_http_extra_vars_module = {
 
 
 static ngx_http_variable_t  ngx_http_extra_vars[] = {
+    { ngx_string("request_uri_path"), NULL,
+      ngx_http_extra_var_request_uri_path, 0, 0, 0 },
+
+    { ngx_string("request_uri_args"), NULL,
+      ngx_http_extra_var_request_uri_args, 0, 0, 0 },
+
+    { ngx_string("request_uri_is_args"), NULL,
+      ngx_http_extra_var_request_uri_is_args, 0, 0, 0 },
+
+    { ngx_string("request_uri_has_args"), NULL, 
+      ngx_http_extra_var_request_uri_has_args, 0, 0, 0 },
+
+    { ngx_string("rewritten_uri"), NULL, 
+      ngx_http_extra_var_rewritten_uri, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("rewritten_uri_path"), NULL,
+      ngx_http_extra_var_rewritten_uri_path, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("normalized_rewritten_uri"), NULL, 
+      ngx_http_extra_var_normalized_rewritten_uri, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("normalized_rewritten_uri_path"), NULL, 
+      ngx_http_extra_var_normalized_rewritten_uri_path, 0,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
     { ngx_string("dollar"), NULL, ngx_http_extra_var_dollar,
       0, 0, 0 },
 
@@ -135,8 +179,8 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("subrequest_count"), NULL, ngx_http_extra_var_uint,
       NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("connection_established_ts"), NULL,ngx_http_extra_var_connection_established_ts,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("connection_established_ts"), NULL, 
+      ngx_http_extra_var_connection_established_ts, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("request_created_ts"), NULL, ngx_http_extra_var_request_ts,
       NGX_HTTP_EXTRA_VAR_REQUEST_CREATED_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -150,11 +194,11 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("response_body_time"), NULL, ngx_http_extra_var_request_time,
       NGX_HTTP_EXTRA_VAR_RESPONSE_BODY_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    {ngx_string("ignore_cache_control"), NULL, ngx_http_extra_var_ignore_cache_control,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+    {ngx_string("ignore_cache_control"), NULL,
+      ngx_http_extra_var_ignore_cache_control, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
-    {ngx_string("ignore_x_accel_expires"), NULL, ngx_http_extra_var_ignore_x_accel_expires,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+    {ngx_string("ignore_x_accel_expires"), NULL,
+      ngx_http_extra_var_ignore_x_accel_expires, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
     { ngx_string("upstream_url"), NULL, ngx_http_extra_var_upstream_url, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -209,6 +253,230 @@ ngx_http_extra_vars_add_variables(ngx_conf_t *cf)
         var->get_handler = v->get_handler;
         var->data = v->data;
     }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_request(ngx_http_request_t *r, 
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_str_t  *s;
+
+    s = (ngx_str_t *) ((char *) r + data);
+
+    if (s->data) {
+        v->len = s->len;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+        v->data = s->data;
+
+    } else {
+        v->not_found = 1;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_request_uri_path(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p;
+
+    p = ngx_strlchr(r->unparsed_uri.data,
+        r->unparsed_uri.data + r->unparsed_uri.len, "?");
+
+    if (p) {
+        v->data = r->unparsed_uri.data;
+        v->len = p - r->unparsed_uri.data;
+
+    } else {
+        v->data = r->unparsed_uri.data;
+        v->len = r->unparsed_uri.len;
+    }
+
+
+    v->data = ngx_pnalloc(r->pool, v->len + 1);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(v->data, r->unparsed_uri.data, v->len);
+    v->data[v->len] = '\0';
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_request_uri_args(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p, *args_start;
+
+    p = ngx_strlchr(r->unparsed_uri.data,
+        r->unparsed_uri.data + r->unparsed_uri.len, "?");
+
+    if (p) {
+        args_start = p + 1;
+        v->data = args_start;
+        v->len = r->unparsed_uri.data + r->unparsed_uri.len - args_start;
+    } else {
+        v->data = (u_char *) "";
+        v->len = 0;
+    }
+
+    v->data = ngx_pnalloc(r->pool, v->len + 1);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(v->data, args_start, v->len);
+    v->data[v->len] = '\0';
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_request_uri_is_args(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p;
+
+    p = ngx_strlchr(r->unparsed_uri.data,
+        r->unparsed_uri.data + r->unparsed_uri.len, "?");
+
+    if (p) {
+        v->len = 1;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+        v->data = (u_char *) "?";
+    } else {
+        *v = ngx_http_variable_null_value;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_request_uri_has_args(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p;
+
+    p = ngx_strlchr(r->unparsed_uri.data,
+        r->unparsed_uri.data + r->unparsed_uri.len, "?");
+
+    if (p) {
+        v->data = (u_char *) "&";
+    } else {
+        v->data = (u_char *) "?";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_rewritten_uri(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_str_t encoded_uri;
+    u_char *p;
+
+    encoded_uri.len = ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
+    encoded_uri.data = ngx_pnalloc(r->pool, encoded_uri.len);
+    if (encoded_uri.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_escape_uri(encoded_uri.data, r->uri.data, r->uri.len, NGX_ESCAPE_ARGS);
+
+    v->len = encoded_uri.len + (r->args.len ? 1 + r->args.len : 0);
+    v->data = ngx_pnalloc(r->pool, v->len);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_copy(v->data, encoded_uri.data, encoded_uri.len);
+    if (r->args.len) {
+        *p++ = '?';
+        ngx_copy(p, r->args.data, r->args.len);
+    }
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_rewritten_uri_path(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_str_t encoded_uri;
+    u_char *p;
+
+    encoded_uri.len = ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    encoded_uri.data = ngx_pnalloc(r->pool, encoded_uri.len);
+    if (encoded_uri.data == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_escape_uri(encoded_uri.data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->len = encoded_uri.len;
+    v->data = encoded_uri.data;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_normalized_rewritten_uri(ngx_http_request_t *r,
+ngx_http_variable_value_t *v, uintptr_t data) {
+    u_char *p;
+
+    v->len = r->uri.len + (r->args.len ? 1 + r->args.len : 0);
+    v->data = ngx_pnalloc(r->pool, v->len);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    p = ngx_copy(v->data, r->uri.data, r->uri.len);
+    if (r->args.len) {
+        *p++ = '?';
+        ngx_memcpy(p, r->args.data, r->args.len);
+    }
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
 
     return NGX_OK;
 }
