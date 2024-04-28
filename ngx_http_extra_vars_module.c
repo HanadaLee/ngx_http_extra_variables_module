@@ -43,11 +43,11 @@ static ngx_int_t ngx_http_extra_var_request_uri_is_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_request_uri_has_args(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_rewritten_uri(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_current_uri(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_rewritten_uri_path(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_current_uri_path(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_normalized_rewritten_uri(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_normalized_current_uri(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_dollar(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -133,20 +133,20 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("request_uri_has_args"), NULL, 
       ngx_http_extra_var_request_uri_has_args, 0, 0, 0 },
 
-    { ngx_string("rewritten_uri"), NULL, 
-      ngx_http_extra_var_rewritten_uri, 0,
+    { ngx_string("current_uri"), NULL, 
+      ngx_http_extra_var_current_uri, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("rewritten_uri_path"), NULL,
-      ngx_http_extra_var_rewritten_uri_path, 0,
+    { ngx_string("current_uri_path"), NULL,
+      ngx_http_extra_var_current_uri_path, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("normalized_rewritten_uri"), NULL, 
-      ngx_http_extra_var_normalized_rewritten_uri, 0,
+    { ngx_string("normalized_current_uri"), NULL, 
+      ngx_http_extra_var_normalized_current_uri, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("normalized_rewritten_uri_path"), NULL, 
-      ngx_http_extra_var_normalized_rewritten_uri_path, 0,
+    { ngx_string("normalized_current_uri_path"), NULL, 
+      ngx_http_extra_var_normalized_current_uri_path, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("dollar"), NULL, ngx_http_extra_var_dollar,
@@ -398,7 +398,7 @@ ngx_http_variable_value_t *v, uintptr_t data)
 
 
 static ngx_int_t
-ngx_http_extra_var_rewritten_uri(ngx_http_request_t *r,
+ngx_http_extra_var_current_uri(ngx_http_request_t *r,
 ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_str_t encoded_uri;
@@ -433,7 +433,7 @@ ngx_http_variable_value_t *v, uintptr_t data)
 
 
 static ngx_int_t
-ngx_http_extra_var_rewritten_uri_path(ngx_http_request_t *r,
+ngx_http_extra_var_current_uri_path(ngx_http_request_t *r,
 ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_str_t encoded_uri;
@@ -458,7 +458,7 @@ ngx_http_variable_value_t *v, uintptr_t data)
 
 
 static ngx_int_t
-ngx_http_extra_var_normalized_rewritten_uri(ngx_http_request_t *r,
+ngx_http_extra_var_normalized_current_uri(ngx_http_request_t *r,
 ngx_http_variable_value_t *v, uintptr_t data) {
     u_char *p;
 

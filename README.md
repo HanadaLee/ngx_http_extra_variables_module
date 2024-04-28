@@ -6,40 +6,40 @@ A collection of extra variables for NGINX. Used to meet logging or other needs.
 
 ### \$request_uri_path
 
-Full original request URI path (without arguments).
+Full original request uri path (without arguments).
 
 ### \$request_uri_args
 
-Full original request URI arguments.
+Full original request uri arguments.
 
 ### \$request_uri_is_args
 
-“?” if original request URI has arguments, or an empty string otherwise.
+“?” if original request uri has arguments, or an empty string otherwise.
 
 ### \$request_uri_has_args
 
-"&" if original request URI has arguments, or "?" otherwise.
+"&" if original request uri has arguments, or "?" otherwise.
 
-### \$rewritten_uri
+### \$current_uri
 
-Full rewritten URI (with arguments).
-The value of $rewritten_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
+Full current uri (with arguments).
+The value of $current_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
 
-### \$rewritten_uri_path
+### \$current_uri_path
 
-Full rewritten URI path (without arguments).
-The value of $rewritten_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
+Full current uri path (without arguments).
+The value of $current_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
 
-### \$normalized_rewritten_uri
+### \$normalized_current_uri
 
-current URI in request (with arguments), normalized.
-The value of $normalized_rewritten_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
+current uri in request (with arguments), normalized.
+The value of $normalized_current_uri may change during request processing, e.g. when doing internal redirects, or when using index files.
 
-### \$normalized_rewritten_uri_path
+### \$normalized_current_uri_path
 
-current URI in request (without arguments), normalized.
-The value is consistent with $uri.
-The value of $normalized_rewritten_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
+current uri in request (without arguments), normalized.
+The value of $normalized_current_uri_path is the same as $uri.
+The value of $normalized_current_uri_path may change during request processing, e.g. when doing internal redirects, or when using index files.
 
 #### \$dollar
 A literal dollar sign.
