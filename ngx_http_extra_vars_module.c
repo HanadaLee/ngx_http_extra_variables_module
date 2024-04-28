@@ -145,8 +145,8 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       ngx_http_extra_var_normalized_current_uri, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("normalized_current_uri_path"), NULL, 
-      ngx_http_extra_var_normalized_current_uri_path, 0,
+    { ngx_string("normalized_current_uri_path"), NULL,
+      ngx_http_extra_var_request, offsetof(ngx_http_request_t, uri),
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("dollar"), NULL, ngx_http_extra_var_dollar,
