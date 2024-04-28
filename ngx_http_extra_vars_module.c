@@ -138,7 +138,7 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("current_path"), NULL,
-      ngx_http_extra_var_current_uri, offsetof(ngx_http_request_t, uri),
+      ngx_http_extra_var_current_path, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("escaped_current_uri"), NULL, 
@@ -426,29 +426,22 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
 {
     ngx_uint_t escape;
     size_t uri_len;
-    ngx_str_t escaped_path;
     u_char *p;
 
     escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
     uri_len = r->uri.len + escape + (r->args.len ? 1 + r->args.len : 0);
 
-    escaped_path.data = ngx_pnalloc(r->pool, r->uri.len + escape);
-    if (escaped_path.data == NULL) {
-        return NGX_ERROR;
-    }
-
-    escaped_path.len = ngx_escape_uri(escaped_path.data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
-
     v->data = ngx_pnalloc(r->pool, uri_len);
     if (v->data == NULL) {
         return NGX_ERROR;
     }
 
-    p = ngx_copy(v->data, escaped_path.data, escaped_path.len);
+    p = v->data;
+    p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
     if (r->args.len) {
-        *p++ = "?";
+        *p++ = '?';
         p = ngx_copy(p, r->args.data, r->args.len);
     }
 
@@ -466,26 +459,25 @@ ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_uint_t escape;
-    size_t path_len;
-    ngx_str_t escaped_path;
+    size_t uri_len;
     u_char *p;
 
     escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
-    path_len = r->uri.len + escape;
+    uri_len = r->uri.len + escape;
 
-    escaped_path.data = ngx_pnalloc(r->pool, path_len);
-    if (escaped_path.data == NULL) {
+    v->data = ngx_pnalloc(r->pool, uri_len);
+    if (v->data == NULL) {
         return NGX_ERROR;
     }
 
-    escaped_path.len = ngx_escape_uri(escaped_path.data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    p = v->data;
+    p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
+    v->len = uri_len;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
-    v->len = path_len;
-    v->data = escaped_path.data;
 
     return NGX_OK;
 }
