@@ -430,7 +430,11 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
 
     escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
-    uri_len = r->uri.len + escape + (r->args.len ? 1 + r->args.len : 0);
+    uri_len = r->uri.len + escape;
+
+    if (r->args.len > 0) {
+        uri_len += 1 + r->args.len;
+    }
 
     v->data = ngx_pnalloc(r->pool, uri_len);
     if (v->data == NULL) {
@@ -440,12 +444,13 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
     p = v->data;
     p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
-    if (r->args.len) {
+    if (r->args.len > 0) {
         *p++ = '?';
-        p = ngx_copy(p, r->args.data, r->args.len);
+        ngx_memcpy(p, r->args.data, r->args.len);
+        p += r->args.len;
     }
 
-    v->len = uri_len;
+    v->len = p - v->data;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
@@ -474,7 +479,7 @@ ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
     p = v->data;
     p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
-    v->len = uri_len;
+    v->len = p - v->data;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
