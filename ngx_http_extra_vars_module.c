@@ -431,7 +431,7 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
     escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
     uri_len = r->uri.len + escape;
-
+    
     if (r->args.len > 0) {
         uri_len += 1 + r->args.len;
     }
@@ -441,8 +441,7 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    p = v->data;
-    p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    p = ngx_escape_uri(v->data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
     if (r->args.len > 0) {
         *p++ = '?';
@@ -478,8 +477,7 @@ ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    p = v->data;
-    p += ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    p = ngx_escape_uri(v->data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
     *p = '\0';
 
