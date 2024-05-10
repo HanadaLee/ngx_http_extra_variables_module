@@ -104,39 +104,8 @@ keeps time spent on sending the response body to the client.
 ### \$ignore_x_accel_expires
 "1" if the value of the proxy_ignore_header directive contains X-Accel-Expires, or "0" otherwise.
 
-### \$upstream_url
-full upstream request url.
-
-### \$upstream_start_ts
-keeps timestamp of upstream starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_ssl_start_ts
-keeps timestamp of upstream ssl handshake starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_ssl_time
-keeps time spent on upstream ssl handshake; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_send_start_ts
-keeps timestamp of upstream request send starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_send_end_ts
-keeps timestamp of upstream request send ends; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_send_time
-keeps time spent on sending request to the upstream server; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_header_ts
-keeps timestamp of upstream response header sent; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_end_ts
-keeps timestamp of upstream response sent or abnormal interruption; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
-### \$upstream_read_time
-keeps time spent on reading response from the upstream server; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
-
 ### \$cache_file
 the cache file path for a cached.
-
 
 ## Off topic
 
@@ -144,13 +113,6 @@ The following is some timestamp calculation logic.  The variables calculated usi
 
 - \$connection_time = \$msec - \$connect_established_ts (connections may be reused)
 - \$ssl_handshake_time = \$ssl_handshake_end_ts - \$ssl_handshake_start_ts
-- \$upstream_dns_time = \$upstream_dns_end_ts - \$upstream_dns_start_ts
-- \$upstream_connect_time = \$upstream_send_start_ts - \$upstream_start_ts
-- \$upstream_ssl_time = \$upstream_send_start_ts - \$upstream_ssl_start_ts
-- \$upstream_send_time = \$upstream_send_end_ts - \$upstream_send_start_ts
-- \$upstream_read_time = \$upstream_end_ts - \$upstream_send_end_ts
-- \$upstream_header_time = \$upstream_header_ts - \$upstream_start_ts
-- \$upstream_response_time = \$upstream_end_ts - \$upstream_start_ts
 - \$request_handling_time = \$response_header_sent_ts - \$request_created_ts
 - \$response_body_time = \$msec - \$response_header_sent_ts
 - \$request_time = \$msec - \$request_created_ts
