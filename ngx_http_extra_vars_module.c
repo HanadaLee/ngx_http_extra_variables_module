@@ -67,6 +67,10 @@ static ngx_int_t ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_hostname_upper(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_hostname_lower(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -183,6 +187,12 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     {ngx_string("ignore_x_accel_expires"), NULL,
       ngx_http_extra_var_ignore_x_accel_expires, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+
+    {ngx_string("hostname_upper"), NULL, ngx_http_extra_var_hostname_upper,
+      0, 0, 0},
+
+    {ngx_string("hostname_lower"), NULL, ngx_http_extra_var_hostname_lower,
+      0, 0, 0},
 
 #if (NGX_HTTP_CACHE)
     { ngx_string("cache_file"), NULL, ngx_http_extra_var_cache_file, 0,
@@ -783,6 +793,62 @@ ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_hostname_upper(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p, *dst;
+    size_t len = ngx_cycle->hostname.len;
+
+    v->len = len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    v->data = ngx_pnalloc(r->pool, len);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    dst = v->data;
+    p = ngx_cycle->hostname.data;
+
+    for (size_t i = 0; i < len; i++) {
+        dst[i] = ngx_toupper(p[i]);
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_var_hostname_lower(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char *p, *dst;
+    size_t len = ngx_cycle->hostname.len;
+
+    v->len = len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    v->data = ngx_pnalloc(r->pool, len);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    dst = v->data;
+    p = ngx_cycle->hostname.data;
+
+    for (size_t i = 0; i < len; i++) {
+        dst[i] = ngx_tolower(p[i]);
+    }
 
     return NGX_OK;
 }
