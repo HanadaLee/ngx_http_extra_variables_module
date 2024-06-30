@@ -107,11 +107,17 @@ keeps time spent on sending the response body to the client.
 ### \$cache_file
 the cache file path for a cached.
 
+### \$hostname_uppercase
+Uppercase host name.
+
+### \$hostname_lowercase
+Lowercase host name.
+
 ## Off topic
 
 The following is some timestamp calculation logic.  The variables calculated using $msec have accurate values only when used in the access logs. Their values may not be accurate if used outside the log phase.
 
-- \$connection_time = \$msec - \$connect_established_ts (connections may be reused)
+- \$connection_time = \$msec - \$connection_established_ts (connections may be reused)
 - \$ssl_handshake_time = \$ssl_handshake_end_ts - \$ssl_handshake_start_ts
 - \$request_handling_time = \$response_header_sent_ts - \$request_created_ts
 - \$response_body_time = \$msec - \$response_header_sent_ts

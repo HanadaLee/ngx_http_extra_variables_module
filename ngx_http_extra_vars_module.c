@@ -67,9 +67,9 @@ static ngx_int_t ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_hostname_upper(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_hostname_uppercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_hostname_lower(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
@@ -188,10 +188,10 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     {ngx_string("ignore_x_accel_expires"), NULL,
       ngx_http_extra_var_ignore_x_accel_expires, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
 
-    {ngx_string("hostname_upper"), NULL, ngx_http_extra_var_hostname_upper,
+    {ngx_string("hostname_uppercase"), NULL, ngx_http_extra_var_hostname_uppercase,
       0, 0, 0},
 
-    {ngx_string("hostname_lower"), NULL, ngx_http_extra_var_hostname_lower,
+    {ngx_string("hostname_lowercase"), NULL, ngx_http_extra_var_hostname_lowercase,
       0, 0, 0},
 
 #if (NGX_HTTP_CACHE)
@@ -799,7 +799,7 @@ ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_var_hostname_upper(ngx_http_request_t *r,
+ngx_http_extra_var_hostname_uppercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char *p, *dst;
@@ -827,7 +827,7 @@ ngx_http_extra_var_hostname_upper(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_var_hostname_lower(ngx_http_request_t *r,
+ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char *p, *dst;
