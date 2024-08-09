@@ -56,9 +56,6 @@ current time in seconds.
 ### \$ext
 the extension from \$uri.
 
-### \$resty_request_id
-unique request identifier composed of request timestamp, host name and random string. If the request header X-Resty-Request-Id is included, the value inherited from this request header.
-
 ### \$is_internal
 "1" if the current request is an "internal request", i.e., a request initiated from inside the current Nginx server instead of from the client side, or "0" otherwise.
 

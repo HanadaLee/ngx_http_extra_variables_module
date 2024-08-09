@@ -47,8 +47,6 @@ static ngx_int_t ngx_http_extra_var_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_is_internal(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_is_subrequest(ngx_http_request_t *r,
@@ -148,9 +146,6 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     { ngx_string("ext"), NULL, ngx_http_extra_var_ext, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-    { ngx_string("resty_request_id"), NULL, ngx_http_extra_var_resty_request_id,
-      0, 0, 0 },
 
     { ngx_string("is_internal"), NULL, ngx_http_extra_var_is_internal,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -501,55 +496,6 @@ ngx_http_extra_var_ext(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
     v->data = r->exten.data;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    u_char      *id, *p;
-    ngx_time_t  *tp;
-    ngx_str_t    arg;
-    size_t       len;
-
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
-    if (r->main != r) {
-        if (r->main->variables) {
-            ngx_http_variable_value_t *main_v = &r->main->variables[data];
-            if (main_v->valid) {
-                v->len = main_v->len;
-                v->data = main_v->data;
-                return NGX_OK;
-            }
-        }
-    }
-
-    if (r->headers_in.x_resty_request_id) {
-        v->len = r->headers_in.x_resty_request_id->value.len;
-        v->data = r->headers_in.x_resty_request_id->value.data;
-        return NGX_OK;
-    }
-
-    len = NGX_TIME_T_LEN + ngx_cycle->hostname.len + NGX_INT64_LEN
-        + NGX_ATOMIC_T_LEN + NGX_INT_T_LEN + 4 ;
-    id = ngx_pnalloc(r->pool, len);
-    if (id == NULL) {
-        return NGX_ERROR;
-    }
-
-    tp = ngx_timeofday();
-    p = ngx_sprintf(id, "%xT_%*s_%P-%uA-%ui", 
-                    tp->sec, ngx_cycle->hostname.len, ngx_cycle->hostname.data,
-                    ngx_pid, r->connection->number, r->connection->requests);
-
-    v->len = p - id;
-    v->data = id;
 
     return NGX_OK;
 }
