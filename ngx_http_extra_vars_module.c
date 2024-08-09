@@ -519,15 +519,20 @@ ngx_http_extra_var_resty_request_id(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
 
+    if (r->main != r) {
+        if (r->main->variables) {
+            ngx_http_variable_value_t *main_v = &r->main->variables[data];
+            if (main_v->valid) {
+                v->len = main_v->len;
+                v->data = main_v->data;
+                return NGX_OK;
+            }
+        }
+    }
+
     if (r->headers_in.x_resty_request_id) {
         v->len = r->headers_in.x_resty_request_id->value.len;
         v->data = r->headers_in.x_resty_request_id->value.data;
-        return NGX_OK;
-    }
-
-    if (ngx_http_arg(r, (u_char *)"resty_request_id", 16, &arg) == NGX_OK) {
-        v->len = arg.len;
-        v->data = arg.data;
         return NGX_OK;
     }
 
