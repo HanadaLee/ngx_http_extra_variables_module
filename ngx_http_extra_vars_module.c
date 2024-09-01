@@ -831,7 +831,7 @@ ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_extra_var_time_rfc1123(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char  *p;
 
