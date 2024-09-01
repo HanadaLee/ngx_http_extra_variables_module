@@ -69,6 +69,8 @@ static ngx_int_t ngx_http_extra_var_hostname_uppercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_var_time_rfc1123(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HTTP_CACHE)
 static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -188,6 +190,9 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
 
     {ngx_string("hostname_lowercase"), NULL, ngx_http_extra_var_hostname_lowercase,
       0, 0, 0},
+
+    { ngx_string("time_rfc1123"), NULL, ngx_http_extra_var_time_rfc1123,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
     { ngx_string("cache_file"), NULL, ngx_http_extra_var_cache_file, 0,
@@ -750,6 +755,25 @@ ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
 
 
 static ngx_int_t
+ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
+        v->data = (u_char *) "1";
+    } else {
+        v->data = (u_char *) "0";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_extra_var_hostname_uppercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -806,19 +830,24 @@ ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+ngx_http_extra_var_time_rfc1123(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 {
-    if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
-        v->data = (u_char *) "1";
-    } else {
-        v->data = (u_char *) "0";
+    u_char  *p;
+
+    p = ngx_pnalloc(r->pool, ngx_cached_http_time.len);
+    if (p == NULL) {
+        return NGX_ERROR;
     }
 
-    v->len = 1;
+    ngx_memcpy(p, ngx_cached_http_time.data,
+               ngx_cached_http_time.len);
+
+    v->len = ngx_cached_http_time.len;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
+    v->data = p;
 
     return NGX_OK;
 }

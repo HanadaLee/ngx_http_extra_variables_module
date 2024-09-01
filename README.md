@@ -101,14 +101,17 @@ keeps time spent on sending the response body to the client.
 ### \$ignore_x_accel_expires
 "1" if the value of the proxy_ignore_header directive contains X-Accel-Expires, or "0" otherwise.
 
-### \$cache_file
-the cache file path for a cached.
-
 ### \$hostname_uppercase
 Uppercase host name.
 
 ### \$hostname_lowercase
 Lowercase host name.
+
+### \$time_rfc1123
+local time in the rfc 1123 standard format. the time format is consistent with the http `Date` header.
+
+### \$cache_file
+the cache file path for a cached.
 
 ## Off topic
 
