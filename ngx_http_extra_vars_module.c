@@ -388,32 +388,42 @@ static ngx_int_t
 ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_uint_t escape;
-    size_t uri_len;
-    u_char *p;
-    uintptr_t escaped_len;
+    size_t      len, escaped_len;
+    u_char     *p;
+    uintptr_t   escape;
 
-    escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    if (r == NULL || r->uri.data == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
 
-    uri_len = r->uri.len + escape;
-    
+    escape = ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+
+    len = r->uri.len + escape * 2;
+
     if (r->args.len > 0) {
-        uri_len += 1 + r->args.len;
+        len += 1 + r->args.len;
     }
 
-    v->data = ngx_pnalloc(r->pool, uri_len + 1);
+
+    v->data = ngx_pnalloc(r->pool, len + 1);
     if (v->data == NULL) {
-        return NGX_ERROR;
+        v->not_found = 1;
+        return NGX_OK;
     }
 
-    escaped_len = ngx_escape_uri(v->data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    p = v->data;
 
-    p = v->data + escaped_len;
+    if (escape) {
+        ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+        p += r->uri.len + escape * 2;
+    } else {
+        p = ngx_copy(p, r->uri.data, r->uri.len);
+    }
 
     if (r->args.len > 0) {
         *p++ = '?';
-        ngx_memcpy(p, r->args.data, r->args.len);
-        p += r->args.len;
+        p = ngx_copy(p, r->args.data, r->args.len);
     }
 
     *p = '\0';
@@ -431,24 +441,34 @@ static ngx_int_t
 ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    ngx_uint_t escape;
-    size_t uri_len;
-    uintptr_t escaped_len;
+    size_t      len, escaped_len;
+    u_char     *p;
+    uintptr_t   escape;
 
-    escape = 2 * ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
-
-    uri_len = r->uri.len + escape;
-
-    v->data = ngx_pnalloc(r->pool, uri_len + 1);
-    if (v->data == NULL) {
-        return NGX_ERROR;
+    // 检查空指针，防止崩溃
+    if (r == NULL || r->uri.data == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
     }
 
-    escaped_len = ngx_escape_uri(v->data, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+    escape = ngx_escape_uri(NULL, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
 
-    v->data[escaped_len] = '\0';
+    len = r->uri.len + escape * 2;
 
-    v->len = escaped_len;
+    v->data = ngx_pnalloc(r->pool, len + 1);
+    if (v->data == NULL) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    if (escape) {
+        ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
+        p += r->uri.len + escape * 2;
+    } else {
+        p = ngx_copy(p, r->uri.data, r->uri.len);
+    }
+
+    v->len = p - v->data;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
