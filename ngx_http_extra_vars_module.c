@@ -388,7 +388,7 @@ static ngx_int_t
 ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    size_t      len, escaped_len;
+    size_t      len;
     u_char     *p;
     uintptr_t   escape;
 
@@ -404,7 +404,6 @@ ngx_http_extra_var_escaped_current_uri(ngx_http_request_t *r,
     if (r->args.len > 0) {
         len += 1 + r->args.len;
     }
-
 
     v->data = ngx_pnalloc(r->pool, len + 1);
     if (v->data == NULL) {
@@ -441,7 +440,7 @@ static ngx_int_t
 ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    size_t      len, escaped_len;
+    size_t      len;
     u_char     *p;
     uintptr_t   escape;
 
@@ -460,12 +459,16 @@ ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
         return NGX_OK;
     }
 
+    p = v->data;
+
     if (escape) {
         ngx_escape_uri(p, r->uri.data, r->uri.len, NGX_ESCAPE_URI);
         p += r->uri.len + escape * 2;
     } else {
         p = ngx_copy(p, r->uri.data, r->uri.len);
     }
+
+    *p = '\0';
 
     v->len = p - v->data;
     v->valid = 1;
