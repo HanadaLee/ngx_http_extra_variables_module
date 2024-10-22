@@ -445,7 +445,6 @@ ngx_http_extra_var_escaped_current_path(ngx_http_request_t *r,
     u_char     *p;
     uintptr_t   escape;
 
-    // 检查空指针，防止崩溃
     if (r == NULL || r->uri.data == NULL) {
         v->not_found = 1;
         return NGX_OK;
