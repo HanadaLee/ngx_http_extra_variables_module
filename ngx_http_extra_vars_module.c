@@ -61,10 +61,6 @@ static ngx_int_t ngx_http_extra_var_request_ts(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_request_time(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_hostname_uppercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
@@ -110,18 +106,22 @@ ngx_module_t  ngx_http_extra_vars_module = {
 
 static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("request_path"), NULL,
-      ngx_http_extra_var_request_path, 0, 0, 0 },
+      ngx_http_extra_var_request_path,
+      0, 0, 0 },
 
     { ngx_string("request_args"), NULL,
-      ngx_http_extra_var_request_args, 0, 0, 0 },
+      ngx_http_extra_var_request_args,
+      0, 0, 0 },
 
     { ngx_string("request_is_args"), NULL,
-      ngx_http_extra_var_request_is_args, 0, 0, 0 },
+      ngx_http_extra_var_request_is_args,
+      0, 0, 0 },
 
-    { ngx_string("request_has_args"), NULL, 
-      ngx_http_extra_var_request_has_args, 0, 0, 0 },
+    { ngx_string("request_has_args"), NULL,
+      ngx_http_extra_var_request_has_args,
+      0, 0, 0 },
 
-    { ngx_string("current_uri"), NULL, 
+    { ngx_string("current_uri"), NULL,
       ngx_http_extra_var_current_uri, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
@@ -129,7 +129,7 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       ngx_http_extra_var_current_path, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("escaped_current_uri"), NULL, 
+    { ngx_string("escaped_current_uri"), NULL,
       ngx_http_extra_var_escaped_current_uri, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
@@ -137,66 +137,84 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
       ngx_http_extra_var_escaped_current_path, 0,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("has_args"), NULL, ngx_http_extra_var_has_args,
+    { ngx_string("has_args"), NULL,
+      ngx_http_extra_var_has_args,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("dollar"), NULL, ngx_http_extra_var_dollar,
+    { ngx_string("dollar"), NULL,
+      ngx_http_extra_var_dollar,
       0, 0, 0 },
 
-    { ngx_string("sec"), NULL, ngx_http_extra_var_sec, 
+    { ngx_string("sec"), NULL,
+      ngx_http_extra_var_sec, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("ext"), NULL, ngx_http_extra_var_ext, 
+    { ngx_string("ext"), NULL,
+      ngx_http_extra_var_ext, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("is_internal"), NULL, ngx_http_extra_var_is_internal,
+    { ngx_string("is_internal"), NULL,
+      ngx_http_extra_var_is_internal,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("is_subrequest"), NULL, ngx_http_extra_var_is_subrequest,
+    { ngx_string("is_subrequest"), NULL,
+      ngx_http_extra_var_is_subrequest,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("location_name"), NULL, ngx_http_extra_var_location_name,
+    { ngx_string("location_name"), NULL,
+      ngx_http_extra_var_location_name,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("redirect_count"), NULL, ngx_http_extra_var_uint,
-      NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("redirect_count"), NULL,
+      ngx_http_extra_var_uint,
+      NGX_HTTP_EXTRA_VAR_REDIRECT_COUNT,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("subrequest_count"), NULL, ngx_http_extra_var_uint,
-      NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("subrequest_count"), NULL,
+      ngx_http_extra_var_uint,
+      NGX_HTTP_EXTRA_VAR_SUBREQUEST_COUNT,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("connection_established_ts"), NULL, 
-      ngx_http_extra_var_connection_established_ts, 0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("connection_established_ts"), NULL,
+      ngx_http_extra_var_connection_established_ts,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_created_ts"), NULL, ngx_http_extra_var_request_ts,
-      NGX_HTTP_EXTRA_VAR_REQUEST_CREATED_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_created_ts"), NULL,
+      ngx_http_extra_var_request_ts,
+      NGX_HTTP_EXTRA_VAR_REQUEST_CREATED_TS,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("response_header_sent_ts"), NULL, ngx_http_extra_var_request_ts,
-      NGX_HTTP_EXTRA_VAR_RESPONSE_HEADER_SENT_TS, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("response_header_sent_ts"), NULL,
+      ngx_http_extra_var_request_ts,
+      NGX_HTTP_EXTRA_VAR_RESPONSE_HEADER_SENT_TS,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("request_handling_time"), NULL, ngx_http_extra_var_request_time,
-      NGX_HTTP_EXTRA_VAR_REQUEST_HANDlING_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("request_handling_time"), NULL,
+      ngx_http_extra_var_request_time,
+      NGX_HTTP_EXTRA_VAR_REQUEST_HANDlING_TIME,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("response_body_time"), NULL, ngx_http_extra_var_request_time,
-      NGX_HTTP_EXTRA_VAR_RESPONSE_BODY_TIME, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("response_body_time"), NULL,
+      ngx_http_extra_var_request_time,
+      NGX_HTTP_EXTRA_VAR_RESPONSE_BODY_TIME,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    {ngx_string("ignore_cache_control"), NULL,
-      ngx_http_extra_var_ignore_cache_control, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+    { ngx_string("hostname_uppercase"), NULL,
+      ngx_http_extra_var_hostname_uppercase,
+      0, 0, 0 },
 
-    {ngx_string("ignore_x_accel_expires"), NULL,
-      ngx_http_extra_var_ignore_x_accel_expires, 0, NGX_HTTP_VAR_NOCACHEABLE, 0},
+    { ngx_string("hostname_lowercase"), NULL,
+      ngx_http_extra_var_hostname_lowercase,
+      0, 0, 0 },
 
-    {ngx_string("hostname_uppercase"), NULL, ngx_http_extra_var_hostname_uppercase,
-      0, 0, 0},
-
-    {ngx_string("hostname_lowercase"), NULL, ngx_http_extra_var_hostname_lowercase,
-      0, 0, 0},
-
-    { ngx_string("time_rfc1123"), NULL, ngx_http_extra_var_time_rfc1123,
+    { ngx_string("time_rfc1123"), NULL,
+      ngx_http_extra_var_time_rfc1123,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
-    { ngx_string("cache_file"), NULL, ngx_http_extra_var_cache_file, 0,
-        NGX_HTTP_VAR_NOCACHEABLE, 0 },
+    { ngx_string("cache_file"), NULL,
+      ngx_http_extra_var_cache_file,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 #endif
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
@@ -658,7 +676,8 @@ ngx_http_extra_var_connection_established_ts(ngx_http_request_t *r,
     tp = ngx_timeofday();
 
     ms = (ngx_msec_t)
-            (tp->sec * 1000 + tp->msec + r->connection->start_time - ngx_current_msec);
+            (tp->sec * 1000 + tp->msec
+                + r->connection->start_time - ngx_current_msec);
 
     v->len = ngx_sprintf(p, "%T.%03M", (time_t) ms / 1000, ms % 1000) - p;
     v->valid = 1;
@@ -695,7 +714,8 @@ ngx_http_extra_var_request_ts(ngx_http_request_t *r,
             v->not_found = 1;
             return NGX_OK;
         }
-        v->len = ngx_sprintf(p, "%T.%03M", r->header_sent_sec, r->header_sent_msec) - p;
+        v->len = ngx_sprintf(p, "%T.%03M",
+                                r->header_sent_sec, r->header_sent_msec) - p;
         break;
 
     default:
@@ -735,12 +755,14 @@ ngx_http_extra_var_request_time(ngx_http_request_t *r,
     switch (data) {
     case NGX_HTTP_EXTRA_VAR_REQUEST_HANDlING_TIME:
         ms = (ngx_msec_int_t) 
-                 ((r->header_sent_sec - r->start_sec) * 1000 + (r->header_sent_msec - r->start_msec));
+                 ((r->header_sent_sec - r->start_sec) * 1000
+                    + (r->header_sent_msec - r->start_msec));
         break;
 
     case NGX_HTTP_EXTRA_VAR_RESPONSE_BODY_TIME:
         ms = (ngx_msec_int_t) 
-                 ((tp->sec - r->header_sent_sec ) * 1000 + (tp->msec - r->header_sent_msec));
+                 ((tp->sec - r->header_sent_sec ) * 1000
+                    + (tp->msec - r->header_sent_msec));
         break;
 
     default:
@@ -755,44 +777,6 @@ ngx_http_extra_var_request_time(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
     v->data = p;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_var_ignore_cache_control(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
-        v->data = (u_char *) "1";
-    } else {
-        v->data = (u_char *) "0";
-    }
-
-    v->len = 1;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_var_ignore_x_accel_expires(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    if (r->upstream->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
-        v->data = (u_char *) "1";
-    } else {
-        v->data = (u_char *) "0";
-    }
-
-    v->len = 1;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
 
     return NGX_OK;
 }

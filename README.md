@@ -95,12 +95,6 @@ keeps time spent on handling request internally from receiving the request to se
 ### \$response_body_time
 keeps time spent on sending the response body to the client.
 
-### \$ignore_cache_control
-"1" if the value of the proxy_ignore_header directive contains Cache-Control, or "0" otherwise.
-
-### \$ignore_x_accel_expires
-"1" if the value of the proxy_ignore_header directive contains X-Accel-Expires, or "0" otherwise.
-
 ### \$hostname_uppercase
 Uppercase host name.
 
