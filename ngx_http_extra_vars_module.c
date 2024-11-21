@@ -67,10 +67,6 @@ static ngx_int_t ngx_http_extra_var_hostname_lowercase(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_var_time_rfc1123(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-#if (NGX_HTTP_CACHE)
-static ngx_int_t ngx_http_extra_var_cache_file(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-#endif
 
 
 static ngx_http_module_t  ngx_http_extra_vars_module_ctx = {
@@ -210,12 +206,6 @@ static ngx_http_variable_t  ngx_http_extra_vars[] = {
     { ngx_string("time_rfc1123"), NULL,
       ngx_http_extra_var_time_rfc1123,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-#if (NGX_HTTP_CACHE)
-    { ngx_string("cache_file"), NULL,
-      ngx_http_extra_var_cache_file,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-#endif
 
     { ngx_null_string, NULL, NULL, 0, 0, 0 }
 };
@@ -860,27 +850,3 @@ ngx_http_extra_var_time_rfc1123(ngx_http_request_t *r,
 
     return NGX_OK;
 }
-
-
-#if (NGX_HTTP_CACHE)
-static ngx_int_t
-ngx_http_extra_var_cache_file(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_cache_t  *c;
-
-    c = r->cache;
-    if (c == NULL || 0 == c->file.name.len) {
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-    v->len = c->file.name.len;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-    v->data = c->file.name.data;
-
-    return NGX_OK;
-}
-#endif
