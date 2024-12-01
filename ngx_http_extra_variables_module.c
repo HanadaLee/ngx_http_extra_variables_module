@@ -72,6 +72,8 @@ static ngx_int_t ngx_http_extra_variable_dollar(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_hextime(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_ext(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_is_internal(ngx_http_request_t *r,
@@ -238,6 +240,10 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
 
     { ngx_string("sec"), NULL,
       ngx_http_extra_variable_sec, 
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("hextime"), NULL,
+      ngx_http_extra_variable_hextime, 
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("ext"), NULL,
@@ -905,6 +911,32 @@ ngx_http_extra_variable_sec(ngx_http_request_t *r,
     tp = ngx_timeofday();
 
     v->len = ngx_sprintf(p, "%T", tp->sec) - p;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_variable_hextime(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char      *p;
+    ngx_time_t  *tp;
+    uint32_t     timestamp;
+
+    p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    tp = ngx_timeofday();
+    timestamp = (uint32_t) tp->sec;
+
+    v->len = ngx_sprintf(p, "%xi", timestamp) - p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
