@@ -115,15 +115,15 @@ static ngx_int_t ngx_http_extra_variable_upstream_addr(ngx_http_request_t *r,
 static ngx_int_t ngx_http_extra_variable_upstream_status(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HTTP_EXT)
-static ngx_int_t ngx_http_extra_variable_upstream_multi_ts(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_upstream_single_ts(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_upstream_multi_time(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_multi_ts(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_single_ts(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_multi_time(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 #endif
-static ngx_int_t ngx_http_extra_variable_upstream_single_time(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_single_time(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 #if 0
 static ngx_int_t ngx_http_extra_variable_upstream_multi_length(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
@@ -981,7 +981,7 @@ ngx_http_extra_variable_has_args(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_extra_variable_is_internal(ngx_http_request_t *r,
-                                ngx_http_variable_value_t *v, uintptr_t data)
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->internal) {
         v->data = (u_char *) "1";
@@ -1000,7 +1000,7 @@ ngx_http_extra_variable_is_internal(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_extra_variable_is_subrequest(ngx_http_request_t *r,
-                                ngx_http_variable_value_t *v, uintptr_t data)
+    ngx_http_variable_value_t *v, uintptr_t data)
 {
     if (r->parent) {
         v->data = (u_char *) "1";
@@ -1287,7 +1287,9 @@ ngx_http_extra_variable_tcpinfo(ngx_http_request_t *r,
     uint32_t         value;
 
     len = sizeof(struct tcp_info);
-    if (getsockopt(r->connection->fd, IPPROTO_TCP, TCP_INFO, &ti, &len) == -1) {
+    if (getsockopt(r->connection->fd, IPPROTO_TCP, TCP_INFO, &ti, &len)
+        == -1)
+    {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -1381,7 +1383,9 @@ ngx_http_extra_variable_upstream_scheme(ngx_http_request_t *r,
         scheme.data = u->schema.data;
         scheme.len = u->schema.len;
 
-        if (scheme.len > 3 && ngx_strncmp(&scheme.data[scheme.len - 3], "://", 3) == 0) {
+        if (scheme.len > 3
+            && ngx_strncmp(&scheme.data[scheme.len - 3], "://", 3) == 0)
+        {
             scheme.len -= 3;
         }
 
@@ -1751,7 +1755,8 @@ ngx_http_extra_variable_upstream_multi_time(ngx_http_request_t *r,
             if (state[i].ssl_start_msec == (ngx_msec_t) -1) {
                 ms = state[i].connect_time;
             } else {
-                ms = (ngx_msec_t) (state[i].ssl_start_msec - state[i].start_msec);
+                ms = (ngx_msec_t) (state[i].ssl_start_msec
+                                    - state[i].start_msec);
             }
             break;
 
@@ -1759,9 +1764,11 @@ ngx_http_extra_variable_upstream_multi_time(ngx_http_request_t *r,
             if (state[i].ssl_start_msec == (ngx_msec_t) -1) {
                 ms = (ngx_msec_t) -1;
             } else if (state[i].send_start_msec == (ngx_msec_t) -1) {
-                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time - state[i].ssl_start_msec);
+                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time
+                                    - state[i].ssl_start_msec);
             } else {
-                ms = (ngx_msec_t) (state[i].send_start_msec - state[i].ssl_start_msec);
+                ms = (ngx_msec_t) (state[i].send_start_msec
+                                    - state[i].ssl_start_msec);
             }
             break;
 #else
@@ -1774,9 +1781,11 @@ ngx_http_extra_variable_upstream_multi_time(ngx_http_request_t *r,
             if (state[i].send_start_msec == (ngx_msec_t) -1) {
                 ms = (ngx_msec_t) -1;
             } else if (state[i].send_end_msec == (ngx_msec_t) -1) {
-                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time - state[i].send_start_msec);
+                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time
+                                    - state[i].send_start_msec);
             } else {
-                ms = (ngx_msec_t) (state[i].send_end_msec - state[i].send_start_msec);
+                ms = (ngx_msec_t) (state[i].send_end_msec
+                                    - state[i].send_start_msec);
             }
             break;
 
@@ -1784,7 +1793,8 @@ ngx_http_extra_variable_upstream_multi_time(ngx_http_request_t *r,
             if (state[i].send_end_msec == (ngx_msec_t) -1) {
                 ms = (ngx_msec_t) -1;
             } else {
-                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time - state[i].send_end_msec);
+                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time
+                                    - state[i].send_end_msec);
             }
             break;
 
@@ -1873,7 +1883,8 @@ ngx_http_extra_variable_upstream_single_time(ngx_http_request_t *r,
         if (state->ssl_start_msec == (ngx_msec_t) -1) {
             ms = (ngx_msec_t) -1;
         } else if (state->send_start_msec == (ngx_msec_t) -1) {
-            ms = (ngx_msec_t) (state->start_msec + state->response_time - state->ssl_start_msec);
+            ms = (ngx_msec_t) (state->start_msec + state->response_time
+                                - state->ssl_start_msec);
         } else {
             ms = (ngx_msec_t) (state->send_start_msec - state->ssl_start_msec);
         }
@@ -1888,7 +1899,8 @@ ngx_http_extra_variable_upstream_single_time(ngx_http_request_t *r,
         if (state->send_start_msec == (ngx_msec_t) -1) {
             ms = (ngx_msec_t) -1;
         } else if (state->send_end_msec == (ngx_msec_t) -1) {
-            ms = (ngx_msec_t) (state->start_msec + state->response_time - state->send_start_msec);
+            ms = (ngx_msec_t) (state->start_msec + state->response_time
+                                - state->send_start_msec);
         } else {
             ms = (ngx_msec_t) (state->send_end_msec - state->send_start_msec);
         }
@@ -1898,7 +1910,8 @@ ngx_http_extra_variable_upstream_single_time(ngx_http_request_t *r,
         if (state->send_end_msec == (ngx_msec_t) -1) {
             ms = (ngx_msec_t) -1;
         } else {
-            ms = (ngx_msec_t) (state->start_msec + state->response_time - state->send_end_msec);
+            ms = (ngx_msec_t) (state->start_msec + state->response_time
+                                - state->send_end_msec);
         }
         break;
 #endif
@@ -2349,7 +2362,9 @@ ngx_http_extra_variable_upstream_cache_create_date(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (!r->cached || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED) {
+    if (!r->cached
+        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+    {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -2405,11 +2420,14 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
 
 #if (NGX_HTTP_EXT)
     if ((ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1) != NULL 
-            && !(u->conf->ignore_cache_control & NGX_HTTP_UPSTREAM_IGN_CC_NOCACHE))
+            && !(u->conf->ignore_cache_control
+                 & NGX_HTTP_UPSTREAM_IGN_CC_NOCACHE))
         || (ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1) != NULL
-            && !(u->conf->ignore_cache_control & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
+            && !(u->conf->ignore_cache_control
+                 & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
         || (ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1) != NULL
-            && !(u->conf->ignore_cache_control & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
+            && !(u->conf->ignore_cache_control
+                 & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
     {
         return NGX_OK;
     }
@@ -2424,7 +2442,8 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
 
     p = ngx_strlcasestrn(start, last, (u_char *) "s-maxage=", 9 - 1);
 #if (NGX_HTTP_EXT)
-    if (p && !(u->conf->ignore_cache_control & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
+    if (p && !(u->conf->ignore_cache_control
+               & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
     {
         offset = 9;
     }
@@ -2605,7 +2624,9 @@ ngx_http_extra_variable_upstream_cache_expire_date(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (!r->cached || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED) {
+    if (!r->cached
+        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+    {
         v->not_found = 1;
         return NGX_OK;
     }
