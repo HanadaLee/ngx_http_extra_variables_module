@@ -133,6 +133,8 @@ static ngx_int_t ngx_http_extra_variable_upstream_single_length(
 
 
 #if (NGX_HTTP_CACHE)
+static ngx_int_t ngx_http_extra_variable_upstream_cacheable(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_key(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_key_crc32(
@@ -548,6 +550,10 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_HTTP_CACHE)
+    { ngx_string("upstream_cacheable"), NULL,
+      ngx_http_extra_variable_upstream_cacheable,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
     { ngx_string("upstream_cache_key"), NULL,
       ngx_http_extra_variable_upstream_cache_key,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
@@ -2083,6 +2089,30 @@ ngx_http_extra_variable_upstream_single_length(ngx_http_request_t *r,
 
 
 #if (NGX_HTTP_CACHE)
+static ngx_int_t
+ngx_http_extra_variable_upstream_cacheable(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    if (!r->upstream) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    if (r->upstream->cacheable) {
+        v->data = (u_char *) "1";
+    } else {
+        v->data = (u_char *) "0";
+    }
+
+    v->len = 1;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
 static ngx_int_t
 ngx_http_extra_variable_upstream_cache_key(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
