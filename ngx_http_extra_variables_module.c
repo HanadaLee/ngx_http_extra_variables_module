@@ -80,8 +80,6 @@ static ngx_int_t ngx_http_extra_variable_is_internal(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_is_subrequest(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_location_name(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_uint(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_connection_established_ts(
@@ -258,10 +256,6 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
 
     { ngx_string("is_subrequest"), NULL,
       ngx_http_extra_variable_is_subrequest,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-    { ngx_string("location_name"), NULL,
-      ngx_http_extra_variable_location_name,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("redirect_count"), NULL,
@@ -1018,24 +1012,6 @@ ngx_http_extra_variable_is_subrequest(ngx_http_request_t *r,
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_variable_location_name(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_core_loc_conf_t  *clcf;
-
-    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
-
-    v->len = clcf->name.len;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-    v->data = clcf->name.data;
 
     return NGX_OK;
 }

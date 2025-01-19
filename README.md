@@ -54,9 +54,6 @@ The extension from \$uri.
 ### \$is_subrequest
 "1" if the current request is an Nginx subrequest, or "0" otherwise.
 
-### \$location
-The name of the current location block.
-
 ### \$redirect_count
 The number of times the current request has been internally.
 
