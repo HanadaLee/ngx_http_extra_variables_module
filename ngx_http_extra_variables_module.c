@@ -98,6 +98,8 @@ static ngx_int_t ngx_http_extra_variable_hostname_lowercase(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_time_rfc1123(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_remote_passwd(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_HAVE_TCP_INFO)
 static ngx_int_t ngx_http_extra_variable_tcpinfo(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
@@ -311,6 +313,10 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
     { ngx_string("time_rfc1123"), NULL,
       ngx_http_extra_variable_time_rfc1123,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("remote_passwd"), NULL,
+      ngx_http_extra_variable_remote_passwd,
+      0, 0, 0 },
 
 #if (NGX_HAVE_TCP_INFO)
     { ngx_string("tcpinfo_total_retrans"), NULL,
@@ -1278,6 +1284,33 @@ ngx_http_extra_variable_time_rfc1123(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
     v->data = p;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_variable_remote_passwd(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_int_t  rc;
+
+    rc = ngx_http_auth_basic_user(r);
+
+    if (rc == NGX_DECLINED) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    if (rc == NGX_ERROR) {
+        return NGX_ERROR;
+    }
+
+    v->len = r->headers_in.passwd.len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = r->headers_in.passwd.data;
 
     return NGX_OK;
 }

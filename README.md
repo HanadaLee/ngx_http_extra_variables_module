@@ -87,6 +87,9 @@ Lowercase host name.
 ### \$time_rfc1123
 Local time in the rfc 1123 standard format. the time format is consistent with the http `Date` header.
 
+### \$remote_passwd
+user password supplied with the Basic authentication
+
 ### \$tcpinfo_total_retrans
 The number of packets in the current connection that contained data being retransmitted counted across the lifetime of the connection.
 
