@@ -2,6 +2,8 @@
 
 A collection of extra variables for NGINX. Used to meet logging or other needs.
 
+Some of these variables need to come from nginx core patch [nginx-ext.patch](https://git.hanada.info/hanada/openresty/-/tree/main/patches) to work. These variables will be marked with * in the following text.
+
 ## Embedded Variables
 
 ### \$request_path
@@ -60,19 +62,19 @@ The number of times the current request has been internally.
 ### \$subrequest_count
 The number of subrequests performed for this request.
 
-### \$connection_established_ts
+### \$connection_established_mesc
 Connection established timestamp in seconds with the milliseconds resolution.
 
-### \$request_created_ts
+### \$request_created_mesc
 Request created timestamp in seconds with the milliseconds resolution.
 
-### \$response_header_sent_ts
+### \$response_header_sent_mesc *
 Response header sent timestamp in seconds with the milliseconds resolution.
 
-### \$request_handling_time
+### \$request_handling_time *
 Keeps time spent on handling request internally from receiving the request to sending the response header to the client.
 
-### \$response_body_time
+### \$response_body_time *
 Keeps time spent on sending the response body to the client.
 
 ### \$hostname_uppercase
@@ -84,37 +86,7 @@ Lowercase host name.
 ### \$time_rfc1123
 Local time in the rfc 1123 standard format. the time format is consistent with the http `Date` header.
 
-### \$tcpinfo_total_retrans
-The number of packets in the current connection that contained data being retransmitted counted across the lifetime of the connection.
-
-### \$tcpinfo_pmtu
-The number of bytes the TCP stack believes can be transmitted in one IP packet without fragmentation to the client. This value is derived on a per-path basis and may be cached between different connections that share the same path.
-
-### \$tcpinfo_rcv_ssthresh
-The maximum number of bytes currently advertised as the TCP receive window (RWIN) to the client. The actual RWIN is reduced by the amount of data currently buffered in the kernel.
-
-### \$tcpinfo_snd_ssthresh
-The TCP stack's current sending slow start threshold expressed in packets. When the congestion window (CWND) is below this value, the TCP stack will grow its sending rate more aggressively.
-
-### \$tcpinfo_advmss
-The number of bytes advertised in the maximum segment size (MSS) option to the client during connection establishment and therefore the maximum packet size that will be received from the client. It is based on the TCP stack's cached information about the path being used to connect to the client and which sizes have been successfully used on the path in the past.
-
-### \$tcpinfo_reordering
-The TCP stack's measure of the frequency of packet reordering experienced on the path to the client. Connections with a higher than default value of tcpi_reordering are on paths that have exhibited unusual levels of packet reordering in the past. The higher reordering threshold will mitigate spurious TCP retransmissions at the cost of slower recovery to real packet loss. The default value of this variable is 3.
-
-When the TCP stack receives new acknowledgment packets that continue to acknowledge the same sequence number, these are considered duplicate acknowledgments. Duplicate acknowledgments tell the TCP stack that some data continues to arrive at the peer, but the next expected packet in the flow has not yet arrived (e.g., there is a hole) when the acknowledgment was generated. The sender needs to decide whether a packet loss created the hole, signaling the need for data retransmission, or the outstanding packets were just reordered on the way to the peer. The value of tcpi_reordering is the number of consecutive duplicate acknowledgments that trigger the loss logic and initiate the retransmission without waiting for a timer (a.k.a., fast retransmit).
-
-The value of the reordering variable may be altered on a per-path basis via the kernel based on runtime feedback after retransmission when those retransmissions are later determined to have been superfluous. When this happens, the kernel can dynamically raise the reordering threshold which makes it more conservative in determining when to send retransmissions in the future. The new threshold applies to the path and is cached so that it also applies to new connections.
-
-### \$tcpinfo_rcv_rtt
-An estimate of time, in microseconds, that it would take the remote client to exhaust the currently advertised remote receive window (RWIN) if no userspace consumption of that data occurred. It is based on the observed bandwidth of the connection and the variable may return zero if there is not enough data transfer yet to make an estimate.
-
-Applications may use this information to schedule the frequency at which they read data from the kernel, but it is primarily used by the kernel itself when determining the size of RWIN.
-
-### \$tcpinfo_last_data_sent
-The number of milliseconds between now and the last time data was transmitted to the client on the current connection. Both new data and retransmitted data are counted. This includes any data framed by the TCP layer such as TLS, HTTP framing, or HTTP message bodies, but it does not include TCP packets that carry only meta information (e.g., pure ACK packets).
-
-### \$upstream_method
+### \$upstream_method *
 Upstream method, usually “GET” or “POST”.
 
 ### \$upstream_scheme
@@ -129,67 +101,67 @@ Keeps the IP address and port, or the path to the UNIX-domain socket of the late
 ### \$upstream_last_status
 Keeps status code of the response obtained from the latest upstream server.
 
-### \$upstream_start_ts
+### \$upstream_start_mesc *
 Keeps timestamp of upstream starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_start_ts
+### \$upstream_last_start_mesc *
 Keeps timestamp of latest upstream starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_ssl_start_ts
+### \$upstream_ssl_start_mesc *
 Keeps timestamp of upstream ssl handshake starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_ssl_start_ts
+### \$upstream_last_ssl_start_mesc *
 Keeps timestamp of latest upstream ssl handshake starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_send_start_ts
+### \$upstream_send_start_mesc *
 Keeps timestamp of upstream request send starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_send_start_ts
+### \$upstream_last_send_start_mesc *
 Keeps timestamp of latest upstream request send starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_send_end_ts
+### \$upstream_send_end_mesc *
 Keeps timestamp of upstream request send ends; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_send_end_ts
+### \$upstream_last_send_end_mesc *
 Keeps timestamp of latest upstream request send ends; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_header_ts
+### \$upstream_header_mesc
 Keeps timestamp of upstream response header sent; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_header_ts
+### \$upstream_last_header_mesc
 Keeps timestamp of latest upstream response header sent; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_end_ts
+### \$upstream_end_mesc
 Keeps timestamp of upstream response sent or abnormal interruption; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_end_ts
+### \$upstream_last_end_mesc
 Keeps timestamp of latest upstream response sent or abnormal interruption; the time is kept in seconds with millisecond resolution.
 
 ### \$upstream_last_connect_time
 Keeps time spent on establishing a connection with the upstream server; the time is kept in seconds with millisecond resolution. In case of SSL, includes time spent on handshake.
 
-### \$upstream_transport_connect_time
+### \$upstream_transport_connect_time *
 Keeps time spent on establishing a connection with the upstream server; the time is kept in seconds with millisecond resolution. In case of SSL, does not include time spent on handshake. Times of several connections are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_transport_connect_time
+### \$upstream_last_transport_connect_time *
 Keeps time spent on establishing a connection with the upstream server; the time is kept in seconds with millisecond resolution. In case of SSL, does not include time spent on handshake.
 
-### \$upstream_ssl_time
+### \$upstream_ssl_time *
 Keeps time spent on upstream ssl handshake; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header. Times of several ssl connections are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_ssl_time
+### \$upstream_last_ssl_time *
 Keeps time spent on latest upstream ssl handshake; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header.
 
-### \$upstream_send_time
+### \$upstream_send_time *
 Keeps time spent on sending request to the upstream server; the time is kept in seconds with millisecond resolution. Times of several send requests are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_send_time
+### \$upstream_last_send_time *
 Keeps time spent on sending request to the latest upstream server; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_read_time
+### \$upstream_read_time *
 Keeps time spent on reading response from the upstream server; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_read_time
+### \$upstream_last_read_time *
 Keeps time spent on reading response from the latest upstream server; the time is kept in seconds with millisecond resolution. Note that this timing starts only after receiving the upstream request header.
 
 ### \$upstream_last_header_time
@@ -231,13 +203,13 @@ The file path of upstream cache.
 ### \$upstream_cache_age
 Age of the cache item.
 
-### \$upstream_cache_create_time
+### \$upstream_cache_create_sec
 Cache create time. unix time.
 
 ### \$upstream_cache_create_date
 Cache create time. the time format is consistent with the http `Date` header.
 
-### \$upstream_cache_expire_time
+### \$upstream_cache_expire_sec
 Cache expire time. unix time.
 
 ### \$upstream_cache_expire_date
@@ -254,20 +226,20 @@ Cache max age.
 
 The following is some timestamp calculation logic. The variables calculated using $msec have accurate values only when used in the access logs. Their values may not be accurate if used outside the log phase.
 
-- \$connection_time = \$msec - \$connection_established_ts (connections may be reused)
-- \$request_handling_time = \$response_header_sent_ts - \$request_created_ts
-- \$response_body_time = \$msec - \$response_header_sent_ts
-- \$request_time = \$msec - \$request_created_ts
+- \$connection_time = \$msec - \$connection_established_mesc (connections may be reused)
+- \$request_handling_time = \$response_header_sent_mesc - \$request_created_mesc
+- \$response_body_time = \$msec - \$response_header_sent_mesc
+- \$request_time = \$msec - \$request_created_mesc
 
-- \$upstream_last_transport_connect_time = \$upstream_last_ssl_start_ts - \$upstream_last_start_ts (with ssl)
-- \$upstream_last_transport_connect_time = \$upstream_last_send_start_ts - \$upstream_last_start_ts (without ssl)
+- \$upstream_last_transport_connect_time = \$upstream_last_ssl_start_mesc - \$upstream_last_start_mesc (with ssl)
+- \$upstream_last_transport_connect_time = \$upstream_last_send_start_mesc - \$upstream_last_start_mesc (without ssl)
 
-- \$upstream_last_ssl_time = \$upstream_last_send_start_ts - \$upstream_last_ssl_start_ts
-- \$upstream_last_send_time = \$upstream_last_send_end_ts - \$upstream_last_send_start_ts
-- \$upstream_last_read_time = \$upstream_last_end_ts - \$upstream_last_header_ts
+- \$upstream_last_ssl_time = \$upstream_last_send_start_mesc - \$upstream_last_ssl_start_mesc
+- \$upstream_last_send_time = \$upstream_last_send_end_mesc - \$upstream_last_send_start_mesc
+- \$upstream_last_read_time = \$upstream_last_end_mesc - \$upstream_last_header_mesc
 
-- \$upstream_last_header_time = \$upstream_last_header_ts - \$upstream_last_start_ts
-- \$upstream_last_response_time = \$upstream_last_end_ts - \$upstream_last_start_ts
+- \$upstream_last_header_time = \$upstream_last_header_mesc - \$upstream_last_start_mesc
+- \$upstream_last_response_time = \$upstream_last_end_mesc - \$upstream_last_start_mesc
 
 
 # Author
