@@ -62,13 +62,13 @@ The number of times the current request has been internally.
 ### \$subrequest_count
 The number of subrequests performed for this request.
 
-### \$connection_established_mesc
+### \$connection_established_msec
 Connection established timestamp in seconds with the milliseconds resolution.
 
-### \$request_created_mesc
+### \$request_created_msec
 Request created timestamp in seconds with the milliseconds resolution.
 
-### \$response_header_sent_mesc *
+### \$response_header_sent_msec *
 Response header sent timestamp in seconds with the milliseconds resolution.
 
 ### \$request_handling_time *
@@ -101,40 +101,40 @@ Keeps the IP address and port, or the path to the UNIX-domain socket of the late
 ### \$upstream_last_status
 Keeps status code of the response obtained from the latest upstream server.
 
-### \$upstream_start_mesc *
+### \$upstream_start_msec *
 Keeps timestamp of upstream starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_start_mesc *
+### \$upstream_last_start_msec *
 Keeps timestamp of latest upstream starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_ssl_start_mesc *
+### \$upstream_ssl_start_msec *
 Keeps timestamp of upstream ssl handshake starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_ssl_start_mesc *
+### \$upstream_last_ssl_start_msec *
 Keeps timestamp of latest upstream ssl handshake starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_send_start_mesc *
+### \$upstream_send_start_msec *
 Keeps timestamp of upstream request send starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_send_start_mesc *
+### \$upstream_last_send_start_msec *
 Keeps timestamp of latest upstream request send starts; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_send_end_mesc *
+### \$upstream_send_end_msec *
 Keeps timestamp of upstream request send ends; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_send_end_mesc *
+### \$upstream_last_send_end_msec *
 Keeps timestamp of latest upstream request send ends; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_header_mesc
+### \$upstream_header_msec
 Keeps timestamp of upstream response header sent; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_header_mesc
+### \$upstream_last_header_msec
 Keeps timestamp of latest upstream response header sent; the time is kept in seconds with millisecond resolution.
 
-### \$upstream_end_mesc
+### \$upstream_end_msec
 Keeps timestamp of upstream response sent or abnormal interruption; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
-### \$upstream_last_end_mesc
+### \$upstream_last_end_msec
 Keeps timestamp of latest upstream response sent or abnormal interruption; the time is kept in seconds with millisecond resolution.
 
 ### \$upstream_last_connect_time
@@ -226,20 +226,20 @@ Cache max age.
 
 The following is some timestamp calculation logic. The variables calculated using $msec have accurate values only when used in the access logs. Their values may not be accurate if used outside the log phase.
 
-- \$connection_time = \$msec - \$connection_established_mesc (connections may be reused)
-- \$request_handling_time = \$response_header_sent_mesc - \$request_created_mesc
-- \$response_body_time = \$msec - \$response_header_sent_mesc
-- \$request_time = \$msec - \$request_created_mesc
+- \$connection_time = \$msec - \$connection_established_msec (connections may be reused)
+- \$request_handling_time = \$response_header_sent_msec - \$request_created_msec
+- \$response_body_time = \$msec - \$response_header_sent_msec
+- \$request_time = \$msec - \$request_created_msec
 
-- \$upstream_last_transport_connect_time = \$upstream_last_ssl_start_mesc - \$upstream_last_start_mesc (with ssl)
-- \$upstream_last_transport_connect_time = \$upstream_last_send_start_mesc - \$upstream_last_start_mesc (without ssl)
+- \$upstream_last_transport_connect_time = \$upstream_last_ssl_start_msec - \$upstream_last_start_msec (with ssl)
+- \$upstream_last_transport_connect_time = \$upstream_last_send_start_msec - \$upstream_last_start_msec (without ssl)
 
-- \$upstream_last_ssl_time = \$upstream_last_send_start_mesc - \$upstream_last_ssl_start_mesc
-- \$upstream_last_send_time = \$upstream_last_send_end_mesc - \$upstream_last_send_start_mesc
-- \$upstream_last_read_time = \$upstream_last_end_mesc - \$upstream_last_header_mesc
+- \$upstream_last_ssl_time = \$upstream_last_send_start_msec - \$upstream_last_ssl_start_msec
+- \$upstream_last_send_time = \$upstream_last_send_end_msec - \$upstream_last_send_start_msec
+- \$upstream_last_read_time = \$upstream_last_end_msec - \$upstream_last_header_msec
 
-- \$upstream_last_header_time = \$upstream_last_header_mesc - \$upstream_last_start_mesc
-- \$upstream_last_response_time = \$upstream_last_end_mesc - \$upstream_last_start_mesc
+- \$upstream_last_header_time = \$upstream_last_header_msec - \$upstream_last_start_msec
+- \$upstream_last_response_time = \$upstream_last_end_msec - \$upstream_last_start_msec
 
 
 # Author
