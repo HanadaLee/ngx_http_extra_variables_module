@@ -141,6 +141,8 @@ static ngx_int_t ngx_http_extra_variable_upstream_cache_variant_hash(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_file(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static time_t ngx_http_extra_variable_get_cache_create_time(
+    ngx_http_request_t *r);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_age(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_create_sec(
@@ -151,7 +153,8 @@ static ngx_int_t ngx_http_extra_variables_check_cache_control(
     ngx_http_request_t *r);
 static ngx_int_t ngx_http_extra_variables_check_accel_expires(
     ngx_http_request_t *r);
-static time_t ngx_http_cache_get_expire_sec(ngx_http_request_t *r);
+static time_t ngx_http_extra_variable_get_cache_expire_time(
+    ngx_http_request_t *r);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_expire_sec(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_expire_date(
@@ -2172,20 +2175,35 @@ ngx_http_extra_variable_upstream_cache_file(ngx_http_request_t *r,
 }
 
 
+static time_t
+ngx_http_extra_variable_get_cache_create_time(ngx_http_request_t *r)
+{
+    if (r->cached) {
+        return r->cache->date;
+    }
+
+    return ngx_time();
+}
+
+
 static ngx_int_t
 ngx_http_extra_variable_upstream_cache_age(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char  *p;
-    time_t   now, age;
+    u_char               *p;
+    time_t                now, age, date;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL) {
+    u = r->upstream;
+    c = r->cache;
+
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
 
     if (!r->cached
-        || r->cache == NULL
         || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
     {
         v->not_found = 1;
@@ -2198,10 +2216,14 @@ ngx_http_extra_variable_upstream_cache_age(ngx_http_request_t *r,
     }
 
     now = ngx_time();
-    age = now - r->cache->date;
+    date = ngx_http_extra_variable_get_cache_create_time(r);
+    age = now - date;
 
-    if (r->cache->date > now) {
+    if (date > now) {
         age = 0;
+
+    } else {
+        age = now - date;
     }
 
     v->len = ngx_sprintf(p, "%T", age) - p;
@@ -2218,27 +2240,27 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_create_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char  *p;
+    u_char               *p;
+    time_t                date;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL) {
+    u = r->upstream;
+    c = r->cache;
+
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
 
-    if (!r->cached
-        || r->cache == NULL
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
-        v->not_found = 1;
-        return NGX_OK;
-    }
+    date = ngx_http_extra_variable_get_cache_create_time(r);
 
     p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    v->len = ngx_sprintf(p, "%T", r->cache->date) - p;
+    v->len = ngx_sprintf(p, "%T", date) - p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
@@ -2252,26 +2274,27 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_create_date(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char     *p;
+    u_char               *p;
+    time_t                date;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL || r->cache == NULL) {
+    u = r->upstream;
+    c = r->cache;
+
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
 
-    if (!r->cached
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
-        v->not_found = 1;
-        return NGX_OK;
-    }
+    date = ngx_http_extra_variable_get_cache_create_time(r);
 
     p = ngx_pnalloc(r->pool, sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    v->len = ngx_http_time(p, r->cache->date) - p;
+    v->len = ngx_http_time(p, date) - p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
@@ -2437,11 +2460,10 @@ ngx_http_extra_variables_check_accel_expires(ngx_http_request_t *r)
 
 
 static time_t
-ngx_http_cache_get_expire_sec(ngx_http_request_t *r)
+ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
 {
-    time_t      expire_sec;
-    time_t      now;
-    ngx_int_t   rc;
+    time_t        expire, now;
+    ngx_int_t     rc;
 
     if (r->cache == NULL) {
         return NGX_ERROR;
@@ -2457,18 +2479,41 @@ ngx_http_cache_get_expire_sec(ngx_http_request_t *r)
         goto new_expire;
     }
 
+    if (!r->cached
+        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+    {
+#if (NGX_HTTP_EXT)
+        expire = ngx_http_file_cache_valid(r, u->conf->cache_valid,
+                                          u->headers_in.status_n);
+#else
+        expire = ngx_http_file_cache_valid(u->conf->cache_valid,
+                                          u->headers_in.status_n);
+#endif
+        if (expire) {
+            expire = now + expire;
+        }
+
+        return expire;
+    }
+
     return r->cache->valid_sec;
 
 new_expire:
 
-    now = ngx_time();
-    expire_sec = r->cache->valid_sec - (now - r->cache->date);
-
-    if (expire_sec < 0) {
-        expire_sec = 0;
+    if (!r->cached
+        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+    {
+        return r->cache->valid_sec;
     }
 
-    return expire_sec;
+    now = ngx_time();
+    expire = r->cache->valid_sec - (now - r->cache->date);
+
+    if (expire < 0) {
+        expire = 0;
+    }
+
+    return expire;
 }
 
 
@@ -2476,30 +2521,27 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_expire_sec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char     *p;
-    time_t      expire_sec;
+    u_char               *p;
+    time_t                expire;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL) {
+    u = r->upstream;
+    c = r->cache;
+
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
 
-    if (!r->cached
-        || r->cache == NULL
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-    expire_sec = ngx_http_cache_get_expire_sec(r);
+    expire = ngx_http_extra_variable_get_cache_expire_time(r);
 
     p = ngx_pnalloc(r->pool, NGX_TIME_T_LEN);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    v->len = ngx_sprintf(p, "%T", expire_sec) - p;
+    v->len = ngx_sprintf(p, "%T", expire) - p;
     v->data = p;
     v->valid = 1;
     v->no_cacheable = 0;
@@ -2513,30 +2555,27 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_expire_date(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char     *p;
-    time_t      expire_sec;
+    u_char               *p;
+    time_t                expire;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL || r->cache == NULL) {
+    u = r->upstream;
+    c = r->cache;
+
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
 
-    if (!r->cached
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-
-    expire_sec = ngx_http_cache_get_expire_sec(r);
+    expire = ngx_http_extra_variable_get_cache_expire_time(r);
 
     p = ngx_pnalloc(r->pool, sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
-    v->len = ngx_http_time(p, expire_sec) - p;
+    v->len = ngx_http_time(p, expire) - p;
     v->valid = 1;
     v->no_cacheable = 0;
     v->not_found = 0;
@@ -2550,18 +2589,15 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_ttl(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char     *p;
-    time_t      now, ttl, expire_sec;
+    u_char               *p;
+    time_t                now, ttl, expire;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
-    }
+    u = r->upstream;
+    c = r->cache;
 
-    if (!r->cached
-        || r->cache == NULL
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -2571,11 +2607,11 @@ ngx_http_extra_variable_upstream_cache_ttl(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    expire_sec = ngx_http_cache_get_expire_sec(r);
+    expire = ngx_http_extra_variable_get_cache_expire_time(r);
     now = ngx_time();
-    ttl = expire_sec - now;
+    ttl = expire - now;
 
-    if (expire_sec < now) {
+    if (expire < now) {
         ttl = 0;
     }
 
@@ -2593,18 +2629,15 @@ static ngx_int_t
 ngx_http_extra_variable_upstream_cache_max_age(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    u_char  *p;
-    time_t   max_age, expire_sec;
+    u_char               *p;
+    time_t                max_age, expire;
+    ngx_http_upstream_t  *u;
+    ngx_http_cache_t     *c;
 
-    if (r->upstream == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
-    }
+    u = r->upstream;
+    c = r->cache;
 
-    if (!r->cached
-        || r->cache == NULL
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
-    {
+    if (u == NULL || c == NULL || u->cacheable == 0) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -2614,8 +2647,8 @@ ngx_http_extra_variable_upstream_cache_max_age(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    expire_sec = ngx_http_cache_get_expire_sec(r);
-    max_age = expire_sec - r->cache->date;
+    expire = ngx_http_extra_variable_get_cache_expire_time(r);
+    max_age = expire - r->cache->date;
 
     v->len = ngx_sprintf(p, "%T", max_age) - p;
     v->valid = 1;
