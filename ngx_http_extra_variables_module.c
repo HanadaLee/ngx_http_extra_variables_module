@@ -2491,6 +2491,7 @@ ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
                                            u->headers_in.status_n);
 #endif
         if (expire) {
+            now = ngx_time();
             expire = now + expire;
         }
 
