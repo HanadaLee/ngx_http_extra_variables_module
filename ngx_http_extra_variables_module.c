@@ -2179,7 +2179,7 @@ static time_t
 ngx_http_extra_variable_get_cache_create_time(ngx_http_request_t *r)
 {
     if (r->cached
-        && r->upstrema->cache_status != NGX_HTTP_CACHE_REVALIDATED)
+        && r->upstream->cache_status != NGX_HTTP_CACHE_REVALIDATED)
     {
         return r->cache->date;
     }
