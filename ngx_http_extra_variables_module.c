@@ -2178,7 +2178,9 @@ ngx_http_extra_variable_upstream_cache_file(ngx_http_request_t *r,
 static time_t
 ngx_http_extra_variable_get_cache_create_time(ngx_http_request_t *r)
 {
-    if (r->cached) {
+    if (r->cached
+        && r->upstrema->cache_status != NGX_HTTP_CACHE_REVALIDATED)
+    {
         return r->cache->date;
     }
 
