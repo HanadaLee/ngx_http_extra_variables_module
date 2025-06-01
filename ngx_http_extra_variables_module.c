@@ -2462,8 +2462,9 @@ ngx_http_extra_variables_check_accel_expires(ngx_http_request_t *r)
 static time_t
 ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
 {
-    time_t        expire, now;
-    ngx_int_t     rc;
+    time_t                expire, now;
+    ngx_int_t             rc;
+    ngx_http_upstream_t  *u;
 
     if (r->cache == NULL) {
         return NGX_ERROR;
@@ -2480,14 +2481,14 @@ ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
     }
 
     if (!r->cached
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+        || u->cache_status == NGX_HTTP_CACHE_REVALIDATED)
     {
 #if (NGX_HTTP_EXT)
         expire = ngx_http_file_cache_valid(r, u->conf->cache_valid,
-                                          u->headers_in.status_n);
+                                           u->headers_in.status_n);
 #else
         expire = ngx_http_file_cache_valid(u->conf->cache_valid,
-                                          u->headers_in.status_n);
+                                           u->headers_in.status_n);
 #endif
         if (expire) {
             expire = now + expire;
@@ -2501,7 +2502,7 @@ ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
 new_expire:
 
     if (!r->cached
-        || r->upstream->cache_status == NGX_HTTP_CACHE_REVALIDATED)
+        || u->cache_status == NGX_HTTP_CACHE_REVALIDATED)
     {
         return r->cache->valid_sec;
     }
