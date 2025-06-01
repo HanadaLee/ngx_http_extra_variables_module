@@ -2466,6 +2466,8 @@ ngx_http_extra_variable_get_cache_expire_time(ngx_http_request_t *r)
     ngx_int_t             rc;
     ngx_http_upstream_t  *u;
 
+    u = r->upstream;
+
     if (r->cache == NULL) {
         return NGX_ERROR;
     }
