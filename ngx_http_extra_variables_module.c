@@ -131,9 +131,9 @@ static ngx_int_t ngx_http_extra_variable_upstream_cacheable(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_key(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_upstream_cache_key_crc32(
+static ngx_int_t ngx_http_extra_variable_upstream_cache_crc32(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_upstream_cache_key_hash(
+static ngx_int_t ngx_http_extra_variable_upstream_cache_hash(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_main_hash(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
@@ -517,12 +517,12 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       ngx_http_extra_variable_upstream_cache_key,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_cache_key_crc32"), NULL,
-      ngx_http_extra_variable_upstream_cache_key_crc32,
+    { ngx_string("upstream_cache_crc32"), NULL,
+      ngx_http_extra_variable_upstream_cache_crc32,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_cache_key_hash"), NULL,
-      ngx_http_extra_variable_upstream_cache_key_hash,
+    { ngx_string("upstream_cache_hash"), NULL,
+      ngx_http_extra_variable_upstream_cache_hash,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
     { ngx_string("upstream_cache_main_hash"), NULL,
@@ -2027,7 +2027,50 @@ ngx_http_extra_variable_upstream_cache_key(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_variable_upstream_cache_key_crc32(ngx_http_request_t *r,
+ngx_http_extra_variable_upstream_cache_variant(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char            *p;
+    size_t             len;
+    ngx_str_t         *key;
+    ngx_uint_t         i;
+    ngx_http_cache_t  *c;
+
+    if (r->cache == NULL || r->cache->vary.len == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    c = r->cache;
+
+    len = 0;
+    key = c->keys.elts;
+
+    for (i = 0; i < c->keys.nelts; i++) {
+        len += key[i].len;
+    }
+
+    p = ngx_pnalloc(r->pool, len);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    v->len = len;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    for (i = 0; i < c->keys.nelts; i++) {
+        p = ngx_cpymem(p, key[i].data, key[i].len);
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_variable_upstream_cache_crc32(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char *crc32_str;
@@ -2055,7 +2098,7 @@ ngx_http_extra_variable_upstream_cache_key_crc32(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_variable_upstream_cache_key_hash(ngx_http_request_t *r,
+ngx_http_extra_variable_upstream_cache_hash(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char *key_hash;

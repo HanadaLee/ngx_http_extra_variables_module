@@ -185,17 +185,17 @@ Number of bytes sent to an upstream server.
 ### \$upstream_cache_key
 The cache key being used.
 
-### \$upstream_cache_key_crc32
+### \$upstream_cache_crc32
 The crc32 checksum of cache key.
 
-### \$upstream_cache_key_hash
-The md5sum hash of cache key.
+### \$upstream_cache_hash
+MD5 hash of the current cache key. Returns variant cache key hash when present, otherwise matches `$upstream_cache_main_hash`.
 
 ### \$upstream_cache_main_hash
-The md5sum hash of main cache key.
+MD5 hash of the main cache key (without variant characteristics).
 
 ### \$upstream_cache_variant_hash
-The md5sum hash of variant cache key when a request is cached based on the Vary response header.
+MD5 hash of variant-specific cache key generated when using `Vary` header-based caching.
 
 ### \$upstream_cache_file
 The file path of upstream cache.
@@ -220,7 +220,6 @@ Cache ttl.
 
 ### \$upstream_cache_max_age
 Cache max age.
-
 
 ## Variables related to time-spent measurement
 
