@@ -2262,7 +2262,6 @@ ngx_http_extra_variable_upstream_cache_age(ngx_http_request_t *r,
 
     now = ngx_time();
     date = ngx_http_extra_variable_get_cache_create_time(r);
-    age = now - date;
 
     if (date > now) {
         age = 0;
@@ -2699,6 +2698,10 @@ ngx_http_extra_variable_upstream_cache_max_age(ngx_http_request_t *r,
     date = ngx_http_extra_variable_get_cache_create_time(r);
     expire = ngx_http_extra_variable_get_cache_expire_time(r);
     max_age = expire - date;
+
+    if (max_age < 0) {
+        max_age = 0;
+    }
 
     v->len = ngx_sprintf(p, "%T", max_age) - p;
     v->valid = 1;
