@@ -2027,49 +2027,6 @@ ngx_http_extra_variable_upstream_cache_key(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_variable_upstream_cache_variant(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    u_char            *p;
-    size_t             len;
-    ngx_str_t         *key;
-    ngx_uint_t         i;
-    ngx_http_cache_t  *c;
-
-    if (r->cache == NULL || r->cache->vary.len == 0) {
-        v->not_found = 1;
-        return NGX_OK;
-    }
-
-    c = r->cache;
-
-    len = 0;
-    key = c->keys.elts;
-
-    for (i = 0; i < c->keys.nelts; i++) {
-        len += key[i].len;
-    }
-
-    p = ngx_pnalloc(r->pool, len);
-    if (p == NULL) {
-        return NGX_ERROR;
-    }
-
-    v->len = len;
-    v->valid = 1;
-    v->no_cacheable = 0;
-    v->not_found = 0;
-    v->data = p;
-
-    for (i = 0; i < c->keys.nelts; i++) {
-        p = ngx_cpymem(p, key[i].data, key[i].len);
-    }
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
 ngx_http_extra_variable_upstream_cache_crc32(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
