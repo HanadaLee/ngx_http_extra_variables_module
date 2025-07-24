@@ -18,6 +18,9 @@ Original request arguments.
 ### \$request_has_args
 "&" if original request uri has arguments, or "?" otherwise.
 
+### \$request_arg_*name*
+argument `name` in the original request line. 
+
 ### \$current_uri
 Full current uri (with arguments), normalized.
 
@@ -41,6 +44,18 @@ The value of $normalized_current_uri_path may change during request processing, 
 ### \$has_args
 "&" if a request line has arguments, or "?" otherwise.
 
+### \$redirected_uri
+original request uri if it is valid, and has not been redirected.
+Otherwise, it will be full current uri in request (with arguments), normalized and escaped again.
+
+`rewrite`, `internal_redirect`, `error_page` and other directives that can trigger internal redirection can change value of this variable.
+
+### \$redirected_path
+original request path if it is valid, and has not been redirected.
+Otherwise, it will be full current path in request (without arguments), normalized and escaped again.
+
+`rewrite`, `internal_redirect`, `error_page` and other directives that can trigger internal redirection can change value of this variable.
+
 ### \$dollar
 A literal dollar sign.
 
@@ -49,6 +64,9 @@ Current time in seconds.
 
 ### \$ext
 The extension from \$uri.
+
+### \$is_valid_unparsed_uri
+"1" if the original request uri is valid, and has not been redirected, or "0" otherwise.
 
 ### \$is_internal
 "1" if the current request is an "internal request", i.e., a request initiated from inside the current Nginx server instead of from the client side, or "0" otherwise.
