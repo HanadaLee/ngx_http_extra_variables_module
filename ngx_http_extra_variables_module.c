@@ -947,7 +947,7 @@ static ngx_int_t
 ngx_http_extra_variable_redirected_uri(ngx_http_request_t *r, 
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (r->valid_unparsed_uri) {
+    if (r == r->main && r->valid_unparsed_uri) {
         v->len = r->unparsed_uri.len;
         v->data = r->unparsed_uri.data;
         v->valid = 1;
@@ -965,7 +965,7 @@ static ngx_int_t
 ngx_http_extra_variable_redirected_path(ngx_http_request_t *r, 
     ngx_http_variable_value_t *v, uintptr_t data)
 {
-    if (r->valid_unparsed_uri) {
+    if (r == r->main && r->valid_unparsed_uri) {
         return ngx_http_extra_variable_request_path(r, v, data);
     }
 
