@@ -110,10 +110,6 @@ static ngx_int_t ngx_http_extra_variable_hostname_lowercase(
 static ngx_int_t ngx_http_extra_variable_time_rfc1123(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 
-#if (NGX_HTTP_EXT)
-static ngx_int_t ngx_http_extra_variable_upstream_method(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data);
-#endif
 static ngx_int_t ngx_http_extra_variable_upstream_scheme(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_uri( ngx_http_request_t *r,
@@ -333,12 +329,6 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
     { ngx_string("time_rfc1123"), NULL,
       ngx_http_extra_variable_time_rfc1123,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-
-#if (NGX_HTTP_EXT)
-    { ngx_string("upstream_method"), NULL,
-      ngx_http_extra_variable_upstream_method,
-      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
-#endif
 
     { ngx_string("upstream_scheme"), NULL,
       ngx_http_extra_variable_upstream_scheme,
@@ -1364,28 +1354,6 @@ ngx_http_extra_variable_time_rfc1123(ngx_http_request_t *r,
     v->no_cacheable = 0;
     v->not_found = 0;
     v->data = p;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_extra_variable_upstream_method(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
-{
-    ngx_http_upstream_t *u;
-
-    u = r->upstream;
-
-    if (u && u->method_name.len > 0) {
-        v->len = u->method_name.len;
-        v->data = u->method_name.data;
-        v->valid = 1;
-        v->no_cacheable = 0;
-        v->not_found = 0;
-    } else {
-        v->not_found = 1;
-    }
 
     return NGX_OK;
 }
