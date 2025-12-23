@@ -755,11 +755,7 @@ ngx_http_extra_variable_request_argument(ngx_http_request_t *r,
 
         /* we need '=' after name, so drop one char from last */
 
-#if (NGX_HTTP_EXT)
-        p = ngx_strlcasestrn_weak(p, last - 1, arg, arg_len - 1);
-#else
         p = ngx_strlcasestrn(p, last - 1, arg, arg_len - 1);
-#endif
 
         if (p == NULL) {
             v->not_found = 1;
