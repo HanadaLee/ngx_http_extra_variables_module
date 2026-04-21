@@ -1569,7 +1569,11 @@ ngx_http_extra_variable_upstream_multi_msec(ngx_http_request_t *r,
             break;
 
         case NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_END_MSEC:
-            ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time);
+            if (state[i].response_time == (ngx_msec_t) -1) {
+                ms = (ngx_msec_t) -1;
+            } else {
+                ms = (ngx_msec_t) (state[i].start_msec + state[i].response_time);
+            }
             break;
 
         default:
@@ -1665,7 +1669,11 @@ ngx_http_extra_variable_upstream_single_msec(ngx_http_request_t *r,
         break;
 
     case NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_END_MSEC:
-        ms = (ngx_msec_t) (state->start_msec + state->response_time);
+        if (state->response_time == (ngx_msec_t) -1) {
+            ms = (ngx_msec_t) -1;
+        } else {
+            ms = (ngx_msec_t) (state->start_msec + state->response_time);
+        }
         break;
 
     default:
