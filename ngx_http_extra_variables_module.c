@@ -118,7 +118,7 @@ static ngx_int_t ngx_http_extra_variable_upstream_addr(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_status(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
-static ngx_int_t ngx_http_extra_variable_upstream_requests(ngx_http_request_t *r,
+static ngx_int_t ngx_http_extra_variable_upstream_tries(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_RESTY_EXT)
 static ngx_int_t ngx_http_extra_variable_upstream_multi_msec(
@@ -350,8 +350,8 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       ngx_http_extra_variable_upstream_status,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
-    { ngx_string("upstream_requests"), NULL,
-      ngx_http_extra_variable_upstream_requests,
+    { ngx_string("upstream_tries"), NULL,
+      ngx_http_extra_variable_upstream_tries,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
 #if (NGX_RESTY_EXT)
@@ -1490,7 +1490,7 @@ ngx_http_extra_variable_upstream_addr(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_extra_variable_upstream_requests(ngx_http_request_t *r,
+ngx_http_extra_variable_upstream_tries(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_uint_t                  i, count;

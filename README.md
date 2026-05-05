@@ -119,7 +119,7 @@ Keeps the IP address and port, or the path to the UNIX-domain socket of the late
 ### \$upstream_last_status
 Keeps status code of the response obtained from the latest upstream server.
 
-### \$upstream_requests
+### \$upstream_tries
 Number of upstream connection attempts. Only attempts with a valid address are counted (address not "-"). Returns "0" if no upstream attempts were made.
 
 ### \$upstream_start_msec *
