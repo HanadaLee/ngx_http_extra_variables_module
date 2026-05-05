@@ -118,6 +118,8 @@ static ngx_int_t ngx_http_extra_variable_upstream_addr(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_status(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_requests(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_RESTY_EXT)
 static ngx_int_t ngx_http_extra_variable_upstream_multi_msec(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
@@ -133,6 +135,8 @@ static ngx_int_t ngx_http_extra_variable_upstream_multi_length(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 #endif
 static ngx_int_t ngx_http_extra_variable_upstream_single_length(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_upstream_total_length(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 #if (NGX_HTTP_CACHE)
@@ -346,6 +350,10 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       ngx_http_extra_variable_upstream_status,
       0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
+    { ngx_string("upstream_requests"), NULL,
+      ngx_http_extra_variable_upstream_requests,
+      0, NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
 #if (NGX_RESTY_EXT)
     { ngx_string("upstream_start_msec"), NULL,
       ngx_http_extra_variable_upstream_multi_msec,
@@ -503,6 +511,11 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_RESPONSE_LENGTH,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
+    { ngx_string("upstream_total_response_length"), NULL,
+      ngx_http_extra_variable_upstream_total_length,
+      NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_RESPONSE_LENGTH,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
 #if 0
     { ngx_string("upstream_bytes_received"), NULL,
       ngx_http_extra_variable_upstream_multi_length,
@@ -515,6 +528,11 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
       NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_RECEIVED,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
+    { ngx_string("upstream_total_bytes_received"), NULL,
+      ngx_http_extra_variable_upstream_total_length,
+      NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_RECEIVED,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
 #if 0
     { ngx_string("upstream_bytes_sent"), NULL,
       ngx_http_extra_variable_upstream_multi_length,
@@ -524,6 +542,11 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
 
     { ngx_string("upstream_last_bytes_sent"), NULL,
       ngx_http_extra_variable_upstream_single_length,
+      NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_SENT,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("upstream_total_bytes_sent"), NULL,
+      ngx_http_extra_variable_upstream_total_length,
       NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_SENT,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 
@@ -1467,6 +1490,45 @@ ngx_http_extra_variable_upstream_addr(ngx_http_request_t *r,
 
 
 static ngx_int_t
+ngx_http_extra_variable_upstream_requests(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_uint_t                  i, count;
+    ngx_http_upstream_state_t  *state;
+
+    if (r->upstream_states == NULL || r->upstream_states->nelts == 0) {
+        v->data = (u_char *) "0";
+        v->len = 1;
+        v->valid = 1;
+        v->no_cacheable = 0;
+        v->not_found = 0;
+        return NGX_OK;
+    }
+
+    count = 0;
+    state = r->upstream_states->elts;
+
+    for (i = 0; i < r->upstream_states->nelts; i++) {
+        if (state[i].peer) {
+            count++;
+        }
+    }
+
+    v->data = ngx_pnalloc(r->pool, NGX_INT_T_LEN);
+    if (v->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    v->len = ngx_sprintf(v->data, "%ui", count) - v->data;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_extra_variable_upstream_status(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
 {
@@ -2066,6 +2128,60 @@ ngx_http_extra_variable_upstream_single_length(ngx_http_request_t *r,
         return NGX_OK;
     }
 
+    v->len = p - v->data;
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_variable_upstream_total_length(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    ngx_uint_t                  i;
+    off_t                       total;
+    ngx_http_upstream_state_t  *state;
+    u_char                     *p;
+
+    if (r->upstream_states == NULL || r->upstream_states->nelts == 0) {
+        v->not_found = 1;
+        return NGX_OK;
+    }
+
+    total = 0;
+    state = r->upstream_states->elts;
+
+    for (i = 0; i < r->upstream_states->nelts; i++) {
+        switch(data) {
+
+        case NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_RESPONSE_LENGTH:
+            total += state[i].response_length;
+            break;
+
+        case NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_RECEIVED:
+            total += state[i].bytes_received;
+            break;
+
+        case NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_BYTES_SENT:
+            total += state[i].bytes_sent;
+            break;
+
+        default:
+            v->not_found = 1;
+            return NGX_OK;
+        }
+    }
+
+    p = ngx_pnalloc(r->pool, NGX_OFF_T_LEN);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    v->data = p;
+    p = ngx_sprintf(p, "%O", total);
     v->len = p - v->data;
     v->valid = 1;
     v->no_cacheable = 0;

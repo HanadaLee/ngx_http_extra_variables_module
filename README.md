@@ -119,6 +119,9 @@ Keeps the IP address and port, or the path to the UNIX-domain socket of the late
 ### \$upstream_last_status
 Keeps status code of the response obtained from the latest upstream server.
 
+### \$upstream_requests
+Number of upstream connection attempts. Only attempts with a valid address are counted (address not "-"). Returns "0" if no upstream attempts were made.
+
 ### \$upstream_start_msec *
 Keeps timestamp of upstream starts; the time is kept in seconds with millisecond resolution. Times of several responses are separated by commas and colons like addresses in the $upstream_addr variable.
 
@@ -189,13 +192,22 @@ Keeps time spent on receiving the response header from the latest upstream serve
 Keeps time spent on receiving the response from the latest upstream server; the time is kept in seconds with millisecond resolution.
 
 ### \$upstream_last_response_length
-Keeps the length of the response obtained from the upstream server; the length is kept in bytes.
+Keeps the length of the response obtained from the latest upstream server; the length is kept in bytes.
+
+### \$upstream_total_response_length
+The total length of the responses obtained from all upstream servers; the length is kept in bytes.
 
 ### \$upstream_last_bytes_received
-Number of bytes received from an upstream server.
+Number of bytes received from the latest upstream server.
+
+### \$upstream_total_bytes_received
+Total number of bytes received from all upstream servers.
 
 ### \$upstream_last_bytes_sent
-Number of bytes sent to an upstream server.
+Number of bytes sent to the latest upstream server.
+
+### \$upstream_total_bytes_sent
+Total number of bytes sent to all upstream servers.
 
 ### \$upstream_cacheable
 "1" if the upstream request is cacheable, or "0" otherwise. it will be empty when the upstream request has not yet been established, do not use it in the early phase of the request (such as the rewrite or access phase).
