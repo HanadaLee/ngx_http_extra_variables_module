@@ -21,6 +21,9 @@
 #define NGX_HTTP_EXTRA_VARIABLE_REQUEST_HANDlING_TIME                     4
 #define NGX_HTTP_EXTRA_VARIABLE_RESPONSE_BODY_TIME                        5
 
+#define NGX_HTTP_EXTRA_VARIABLE_REQUEST_HEADER_LENGTH                     6
+#define NGX_HTTP_EXTRA_VARIABLE_REQUEST_BODY_LENGTH                       7
+
 #define NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_START_MSEC                       10
 #if (NGX_HTTP_SSL)
 #define NGX_HTTP_EXTRA_VARIABLE_UPSTREAM_SSL_START_MSEC                   11
@@ -100,6 +103,8 @@ static ngx_int_t ngx_http_extra_variable_request_msec(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #if (NGX_RESTY_EXT)
 static ngx_int_t ngx_http_extra_variable_request_time(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data);
+static ngx_int_t ngx_http_extra_variable_request_length(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data);
 #endif
 
@@ -319,6 +324,16 @@ static ngx_http_variable_t  ngx_http_extra_variables[] = {
     { ngx_string("response_body_time"), NULL,
       ngx_http_extra_variable_request_time,
       NGX_HTTP_EXTRA_VARIABLE_RESPONSE_BODY_TIME,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("request_header_length"), NULL,
+      ngx_http_extra_variable_request_length,
+      NGX_HTTP_EXTRA_VARIABLE_REQUEST_HEADER_LENGTH,
+      NGX_HTTP_VAR_NOCACHEABLE, 0 },
+
+    { ngx_string("request_body_length"), NULL,
+      ngx_http_extra_variable_request_length,
+      NGX_HTTP_EXTRA_VARIABLE_REQUEST_BODY_LENGTH,
       NGX_HTTP_VAR_NOCACHEABLE, 0 },
 #endif
 
@@ -1247,6 +1262,7 @@ ngx_http_extra_variable_request_msec(ngx_http_request_t *r,
 
 
 #if (NGX_RESTY_EXT)
+
 static ngx_int_t
 ngx_http_extra_variable_request_time(ngx_http_request_t *r,
     ngx_http_variable_value_t *v, uintptr_t data)
@@ -1295,6 +1311,35 @@ ngx_http_extra_variable_request_time(ngx_http_request_t *r,
 
     return NGX_OK;
 }
+
+
+static ngx_int_t
+ngx_http_extra_variable_request_length(ngx_http_request_t *r,
+    ngx_http_variable_value_t *v, uintptr_t data)
+{
+    u_char  *p;
+
+    p = ngx_pnalloc(r->pool, NGX_OFF_T_LEN);
+    if (p == NULL) {
+        return NGX_ERROR;
+    }
+
+    if (data == NGX_HTTP_EXTRA_VARIABLE_REQUEST_HEADER_LENGTH) {
+        v->len = ngx_sprintf(p, "%O", r->request_header_length) - p;
+
+    } else { /* NGX_HTTP_EXTRA_VARIABLE_REQUEST_BODY_LENGTH */
+        v->len = ngx_sprintf(p, "%O",
+                             r->request_length - r->request_header_length) - p;
+    }
+
+    v->valid = 1;
+    v->no_cacheable = 0;
+    v->not_found = 0;
+    v->data = p;
+
+    return NGX_OK;
+}
+
 #endif
 
 

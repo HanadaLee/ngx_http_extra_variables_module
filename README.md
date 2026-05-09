@@ -95,6 +95,12 @@ Keeps time spent on handling request internally from receiving the request to se
 ### \$response_body_time *
 Keeps time spent on sending the response body to the client.
 
+### \$request_header_length *
+Keeps the length of the request header in bytes.
+
+### \$request_body_length *
+Keeps the length of the request body in bytes.
+
 ### \$hostname_uppercase
 Uppercase host name.
 
