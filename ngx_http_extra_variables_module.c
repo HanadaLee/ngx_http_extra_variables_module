@@ -169,6 +169,8 @@ static ngx_int_t ngx_http_extra_variable_upstream_cache_create_date(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variables_check_cache_control(
     ngx_http_request_t *r);
+static ngx_int_t ngx_http_extra_variables_process_delta_seconds(u_char *p,
+    u_char *last);
 static ngx_int_t ngx_http_extra_variables_check_accel_expires(
     ngx_http_request_t *r);
 static time_t ngx_http_extra_variables_get_cache_expire_time(
@@ -2614,79 +2616,120 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
         return NGX_OK;
     }
 
-    start = cache_control->value.data;
-    last = start + cache_control->value.len;
+    while (cache_control) {
+        start = cache_control->value.data;
+        last = start + cache_control->value.len;
 
 #if (NGX_RESTY_EXT)
-    if ((ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1) != NULL 
+        if ((ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1)
+             != NULL
+             && !(u->conf->ignore_cache_control
+                  & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
+            || (ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1)
+                != NULL
+                && !(u->conf->ignore_cache_control
+                     & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
+        {
+            return NGX_OK;
+        }
+
+        if (ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1)
+            != NULL
             && !(u->conf->ignore_cache_control
                  & NGX_HTTP_UPSTREAM_IGN_CC_NOCACHE))
-        || (ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1) != NULL
-            && !(u->conf->ignore_cache_control
-                 & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
-        || (ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1) != NULL
-            && !(u->conf->ignore_cache_control
-                 & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
-    {
-        return NGX_OK;
-    }
+        {
+            return NGX_DECLINED;
+        }
 #else
-    if (ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1) != NULL
-        || ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1) != NULL
-        || ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1) != NULL)
-    {
-        return NGX_OK;
-    }
+        if (ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1)
+            != NULL
+            || ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1)
+            != NULL
+            || ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1)
+            != NULL)
+        {
+            return NGX_OK;
+        }
 #endif
 
-    p = ngx_strlcasestrn(start, last, (u_char *) "s-maxage=", 9 - 1);
+        p = ngx_strlcasestrn(start, last, (u_char *) "s-maxage=", 9 - 1);
 #if (NGX_RESTY_EXT)
-    if (p && !(u->conf->ignore_cache_control
-               & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
-    {
-        offset = 9;
-    }
-    else if ((p = ngx_strlcasestrn(start, last, (u_char *) "max-age=", 7))
-        && !(u->conf->ignore_cache_control & NGX_HTTP_UPSTREAM_IGN_CC_MAXAGE))
-    {
-        offset = 8;
-    }
-    else {
-        p = NULL;
-    }
-#else
-    offset = 9;
+        if (p && !(u->conf->ignore_cache_control
+                   & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
+        {
+            offset = 9;
 
-    if (p == NULL) {
-        p = ngx_strlcasestrn(start, last, (u_char *) "max-age=", 8 - 1);
-        offset = 8;
-    }
+        } else if (!(u->conf->ignore_cache_control
+                     & NGX_HTTP_UPSTREAM_IGN_CC_MAXAGE))
+        {
+            p = ngx_strlcasestrn(start, last, (u_char *) "max-age=", 8 - 1);
+            offset = 8;
+
+        } else {
+            p = NULL;
+        }
+#else
+        offset = 9;
+
+        if (p == NULL) {
+            p = ngx_strlcasestrn(start, last, (u_char *) "max-age=", 8 - 1);
+            offset = 8;
+        }
 #endif
 
-    if (p == NULL) {
-        return NGX_OK;
+        if (p == NULL) {
+            cache_control = cache_control->next;
+            continue;
+        }
+
+        n = ngx_http_extra_variables_process_delta_seconds(p + offset, last);
+        if (n == NGX_ERROR) {
+            return NGX_OK;
+        }
+
+        if (n == 0) {
+#if (NGX_RESTY_EXT)
+            return NGX_DECLINED;
+#else
+            return NGX_OK;
+#endif
+        }
+
+        return NGX_DECLINED;
     }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_extra_variables_process_delta_seconds(u_char *p, u_char *last)
+{
+    ngx_int_t  n, cutoff, cutlim;
+
+    cutoff = NGX_MAX_INT_T_VALUE / 10;
+    cutlim = NGX_MAX_INT_T_VALUE % 10;
 
     n = 0;
 
-    for (p += offset; p < last; p++) {
+    for ( /* void */ ; p < last; p++) {
         if (*p == ',' || *p == ';' || *p == ' ') {
             break;
         }
 
-        if (*p >= '0' && *p <= '9') {
-            n = n * 10 + (*p - '0');
-            continue;
+        if (*p < '0' || *p > '9') {
+            return NGX_ERROR;
         }
 
-        return NGX_OK;
+        if (n >= cutoff && (n > cutoff || *p - '0' > cutlim)) {
+            n = NGX_MAX_INT_T_VALUE;
+            break;
+        }
+
+        n = n * 10 + (*p - '0');
     }
 
-    if (n == 0) {
-        return NGX_OK;
-    }
-
-    return NGX_DECLINED;
+    return n;
 }
 
 
@@ -2750,6 +2793,15 @@ ngx_http_extra_variables_get_cache_expire_time(ngx_http_request_t *r)
     if (r->cache == NULL) {
         return NGX_ERROR;
     }
+
+    /*
+     * On cache hits, nginx sends the cached response by reparsing the response
+     * headers stored in the cache file. If those headers contain
+     * X-Accel-Expires or Cache-Control TTLs, upstream header processing can
+     * overwrite r->cache->valid_sec with a value relative to the hit time
+     * before header filters or variables read it. Detect those header-derived
+     * TTLs and use new_expire to restore the original cache-file expiration.
+     */
 
     rc = ngx_http_extra_variables_check_accel_expires(r);
     if (rc == NGX_DECLINED) {
