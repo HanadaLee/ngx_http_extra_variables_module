@@ -10,6 +10,10 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+#include <ngx_http_condition_module.h>
+#endif
+
 
 #define NGX_HTTP_EXTRA_VARIABLE_REDIRECT_COUNT                            0
 #define NGX_HTTP_EXTRA_VARIABLE_SUBREQUEST_COUNT                          1
@@ -167,6 +171,10 @@ static ngx_int_t ngx_http_extra_variable_upstream_cache_create_sec(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_create_date(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+static ngx_uint_t ngx_http_extra_variables_get_bitmask(ngx_http_request_t *r,
+    ngx_array_t *values, ngx_uint_t value);
+#endif
 static ngx_int_t ngx_http_extra_variables_check_cache_control(
     ngx_http_request_t *r);
 static ngx_int_t ngx_http_extra_variables_process_delta_seconds(u_char *p,
@@ -2619,6 +2627,20 @@ ngx_http_extra_variable_upstream_cache_create_date(ngx_http_request_t *r,
 }
 
 
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+static ngx_uint_t
+ngx_http_extra_variables_get_bitmask(ngx_http_request_t *r,
+    ngx_array_t *values, ngx_uint_t value)
+{
+    if (values == NULL || values == NGX_CONF_UNSET_PTR) {
+        return value;
+    }
+
+    return ngx_http_get_conditional_bitmask_value(r, values);
+}
+#endif
+
+
 static ngx_int_t
 ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
 {
@@ -2627,6 +2649,9 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
     u_char               *p, *start, *last;
     ngx_int_t             n;
     ngx_uint_t            offset;
+#if (NGX_RESTY_EXT)
+    ngx_uint_t            ignore;
+#endif
 
     if (r->cache == NULL) {
         return NGX_OK;
@@ -2637,7 +2662,14 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
         return NGX_OK;
     }
 
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+    if (ngx_http_extra_variables_get_bitmask(r, u->conf->ignore_headers_conf,
+                                             u->conf->ignore_headers)
+        & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL)
+    {
+#else
     if (u->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL) {
+#endif
         return NGX_OK;
     }
 
@@ -2650,6 +2682,13 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
         return NGX_OK;
     }
 
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+    ignore = ngx_http_get_conditional_bitmask_value(
+                 r, u->conf->ignore_cache_control);
+#elif (NGX_RESTY_EXT)
+    ignore = u->conf->ignore_cache_control;
+#endif
+
     while (cache_control) {
         start = cache_control->value.data;
         last = start + cache_control->value.len;
@@ -2657,20 +2696,17 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
 #if (NGX_RESTY_EXT)
         if ((ngx_strlcasestrn(start, last, (u_char *) "no-store", 8 - 1)
              != NULL
-             && !(u->conf->ignore_cache_control
-                  & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
+             && !(ignore & NGX_HTTP_UPSTREAM_IGN_CC_NOSTORE))
             || (ngx_strlcasestrn(start, last, (u_char *) "private", 7 - 1)
                 != NULL
-                && !(u->conf->ignore_cache_control
-                     & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
+                && !(ignore & NGX_HTTP_UPSTREAM_IGN_CC_PRIVATE)))
         {
             return NGX_OK;
         }
 
         if (ngx_strlcasestrn(start, last, (u_char *) "no-cache", 8 - 1)
             != NULL
-            && !(u->conf->ignore_cache_control
-                 & NGX_HTTP_UPSTREAM_IGN_CC_NOCACHE))
+            && !(ignore & NGX_HTTP_UPSTREAM_IGN_CC_NOCACHE))
         {
             return NGX_DECLINED;
         }
@@ -2688,13 +2724,11 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
 
         p = ngx_strlcasestrn(start, last, (u_char *) "s-maxage=", 9 - 1);
 #if (NGX_RESTY_EXT)
-        if (p && !(u->conf->ignore_cache_control
-                   & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
+        if (p && !(ignore & NGX_HTTP_UPSTREAM_IGN_CC_SMAXAGE))
         {
             offset = 9;
 
-        } else if (!(u->conf->ignore_cache_control
-                     & NGX_HTTP_UPSTREAM_IGN_CC_MAXAGE))
+        } else if (!(ignore & NGX_HTTP_UPSTREAM_IGN_CC_MAXAGE))
         {
             p = ngx_strlcasestrn(start, last, (u_char *) "max-age=", 8 - 1);
             offset = 8;
@@ -2785,7 +2819,14 @@ ngx_http_extra_variables_check_accel_expires(ngx_http_request_t *r)
         return NGX_OK;
     }
 
+#if (NGX_RESTY_EXT && NGX_CONDITION)
+    if (ngx_http_extra_variables_get_bitmask(r, u->conf->ignore_headers_conf,
+                                             u->conf->ignore_headers)
+        & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES)
+    {
+#else
     if (u->conf->ignore_headers & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES) {
+#endif
         return NGX_OK;
     }
 
