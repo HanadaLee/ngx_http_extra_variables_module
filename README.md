@@ -276,6 +276,26 @@ The following is some timestamp calculation logic. The variables calculated usin
 - \$upstream_last_header_time = \$upstream_last_header_msec - \$upstream_last_start_msec
 - \$upstream_last_response_time = \$upstream_last_end_msec - \$upstream_last_start_msec
 
+## Testing
+
+The test suite uses the `Test::Nginx` framework from the nginx-tests
+repository. Build NGINX with this module, the HTTP proxy and cache modules,
+and `ngx_condition_module` when running the condition tests:
+
+```sh
+cd /path/to/nginx-1.31.3
+./configure --add-module=/path/to/ngx_condition_module \
+    --add-module=/path/to/ngx_http_extra_variables_module
+make -j2
+```
+
+Run the module tests with:
+
+```sh
+TEST_NGINX_BINARY=/path/to/nginx-1.31.3/objs/nginx \
+    prove -I /path/to/nginx-tests/lib t
+```
+
 
 # Author
 
