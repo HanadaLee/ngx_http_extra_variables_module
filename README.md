@@ -280,11 +280,11 @@ The following is some timestamp calculation logic. The variables calculated usin
 
 The test suite uses the `Test::Nginx` framework from the nginx-tests
 repository. Build NGINX with this module, the HTTP proxy and cache modules,
-and `ngx_condition_module` when running the condition tests:
+and `ngx_expr_module` when running the condition tests:
 
 ```sh
 cd /path/to/nginx-1.31.3
-./configure --add-module=/path/to/ngx_condition_module \
+./configure --add-module=/path/to/ngx_expr_module \
     --add-module=/path/to/ngx_http_extra_variables_module
 make -j2
 ```

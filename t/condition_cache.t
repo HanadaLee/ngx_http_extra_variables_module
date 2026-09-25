@@ -17,7 +17,7 @@ use Test::Nginx qw/ :DEFAULT /;
 select STDERR; $| = 1;
 select STDOUT; $| = 1;
 
-my $t = Test::Nginx->new()->has(qw/http proxy cache ngx_condition_module
+my $t = Test::Nginx->new()->has(qw/http proxy cache ngx_expr_module
 	ngx_http_extra_variables_module/)->plan(12);
 
 $t->write_file_expand('nginx.conf', <<'EOF');
@@ -38,8 +38,8 @@ http {
         listen       127.0.0.1:8080;
         server_name  localhost;
 
-        condition ignore_headers str_in $http_x_case ignore_headers;
-        condition ignore_control str_in $http_x_case ignore_control;
+        expr ignore_headers str_in $http_x_case ignore_headers;
+        expr ignore_control str_in $http_x_case ignore_control;
 
         location /headers/ {
             proxy_pass http://127.0.0.1:8081;

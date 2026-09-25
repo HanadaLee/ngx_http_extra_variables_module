@@ -10,8 +10,8 @@
 #include <ngx_http.h>
 #include <nginx.h>
 
-#if (NGX_RESTY_EXT && NGX_CONDITION)
-#include <ngx_http_condition_module.h>
+#if (NGX_RESTY_EXT && NGX_EXPR)
+#include <ngx_http_expr_module.h>
 #endif
 
 
@@ -171,7 +171,7 @@ static ngx_int_t ngx_http_extra_variable_upstream_cache_create_sec(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 static ngx_int_t ngx_http_extra_variable_upstream_cache_create_date(
     ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
-#if (NGX_RESTY_EXT && NGX_CONDITION)
+#if (NGX_RESTY_EXT && NGX_EXPR)
 static ngx_uint_t ngx_http_extra_variables_get_bitmask(ngx_http_request_t *r,
     ngx_array_t *values, ngx_uint_t value);
 #endif
@@ -2627,7 +2627,7 @@ ngx_http_extra_variable_upstream_cache_create_date(ngx_http_request_t *r,
 }
 
 
-#if (NGX_RESTY_EXT && NGX_CONDITION)
+#if (NGX_RESTY_EXT && NGX_EXPR)
 static ngx_uint_t
 ngx_http_extra_variables_get_bitmask(ngx_http_request_t *r,
     ngx_array_t *values, ngx_uint_t value)
@@ -2636,7 +2636,7 @@ ngx_http_extra_variables_get_bitmask(ngx_http_request_t *r,
         return value;
     }
 
-    return ngx_http_get_conditional_bitmask_value(r, values);
+    return ngx_http_get_expr_bitmask_value(r, values);
 }
 #endif
 
@@ -2662,7 +2662,7 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
         return NGX_OK;
     }
 
-#if (NGX_RESTY_EXT && NGX_CONDITION)
+#if (NGX_RESTY_EXT && NGX_EXPR)
     if (ngx_http_extra_variables_get_bitmask(r, u->conf->ignore_headers_conf,
                                              u->conf->ignore_headers)
         & NGX_HTTP_UPSTREAM_IGN_CACHE_CONTROL)
@@ -2682,9 +2682,8 @@ ngx_http_extra_variables_check_cache_control(ngx_http_request_t *r)
         return NGX_OK;
     }
 
-#if (NGX_RESTY_EXT && NGX_CONDITION)
-    ignore = ngx_http_get_conditional_bitmask_value(
-                 r, u->conf->ignore_cache_control);
+#if (NGX_RESTY_EXT && NGX_EXPR)
+    ignore = ngx_http_get_expr_bitmask_value(r, u->conf->ignore_cache_control);
 #elif (NGX_RESTY_EXT)
     ignore = u->conf->ignore_cache_control;
 #endif
@@ -2819,7 +2818,7 @@ ngx_http_extra_variables_check_accel_expires(ngx_http_request_t *r)
         return NGX_OK;
     }
 
-#if (NGX_RESTY_EXT && NGX_CONDITION)
+#if (NGX_RESTY_EXT && NGX_EXPR)
     if (ngx_http_extra_variables_get_bitmask(r, u->conf->ignore_headers_conf,
                                              u->conf->ignore_headers)
         & NGX_HTTP_UPSTREAM_IGN_XA_EXPIRES)
